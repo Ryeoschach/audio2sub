@@ -1,0 +1,10 @@
+fastapi
+uvicorn[standard]
+celery[redis]
+python-dotenv
+ffmpeg-python
+faster-whisper
+pydantic-settings
+
+# For development, you might want to add:
+# watchfiles

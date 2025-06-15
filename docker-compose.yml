@@ -1,0 +1,70 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:alpine
+    container_name: audio2sub_redis
+    ports:
+      - "6379:6379"
+    # 如果 Redis 需要密码，请取消注释并设置密码
+    command: redis-server --requirepass redispassword
+    volumes:
+      - redis_data:/data
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: audio2sub_backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app_backend  # 实时代码同步 (开发环境)
+      # - ./models_whisper:/models # 挂载 Whisper 模型目录 (如果本地下载)
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=redispassword # 如果 Redis 设置了密码
+      - CELERY_BROKER_URL=redis://:redispassword@redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://:redispassword@redis:6379/0
+      # - MODEL_PATH=/models/faster-whisper-large-v3 # Whisper 模型路径
+    depends_on:
+      - redis
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  celery_worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile # 可以与 backend 使用相同的 Dockerfile
+    container_name: audio2sub_celery_worker
+    volumes:
+      - ./backend:/app_backend # 实时代码同步 (开发环境)
+      # - ./models_whisper:/models # 挂载 Whisper 模型目录
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=redispassword # 如果 Redis 设置了密码
+      - CELERY_BROKER_URL=redis://:redispassword@redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://:redispassword@redis:6379/0
+      # - MODEL_PATH=/models/faster-whisper-large-v3
+    depends_on:
+      - redis
+      - backend # 可选，确保 backend 服务先启动，但通常 worker 独立
+    command: sh -c "celery -A celery_app.celery worker -l info" # 确保 celery_app.py 中定义了 celery 实例
+
+  # 前端服务 (如果通过 Docker 运行)
+  # frontend:
+  #   build:
+  #     context: ./frontend
+  #     dockerfile: Dockerfile # 需要为前端创建 Dockerfile
+  #   container_name: audio2sub_frontend
+  #   ports:
+  #     - "5173:5173" # Vite 默认端口
+  #   volumes:
+  #     - ./frontend:/app_frontend # 实时代码同步 (开发环境)
+  #     - /app_frontend/node_modules # 避免覆盖容器内的 node_modules
+  #   depends_on:
+  #     - backend
+
+volumes:
+  redis_data:
