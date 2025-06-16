@@ -184,49 +184,112 @@ def transcribe_with_transformers(audio_file_path: str) -> Dict[str, Any]:
                 end_time = timestamp[1] if timestamp[1] is not None else start_time + 1
                 text = chunk.get("text", "").strip()
                 
+                logger.info(f"Chunk {i}: duration={end_time-start_time:.1f}s, text='{text[:100]}...'")
+                
                 # Split chunk text into words and create individual word segments
                 if text:
-                    words = text.split()
+                    # 智能中文分词 - 修复版本
+                    import re
+                    
+                    # 第一步：处理标点符号，为分词做准备
+                    text_cleaned = re.sub(r'[，。！？、；：]', ' ', text)
+                    
+                    # 第二步：分词 - 中文按字分，英文按词分，数字单独分
+                    words = []
+                    
+                    # 使用更精确的正则表达式
+                    tokens = re.findall(r'[a-zA-Z]+|[0-9]+|[一-龯]', text_cleaned)
+                    
+                    # 如果正则没有匹配到足够的词，使用简单分割
+                    if len(tokens) < len(text_cleaned.strip()) * 0.3:  # 如果分词结果太少
+                        # 按空格分割，然后再按字符分割中文
+                        temp_words = text_cleaned.split()
+                        for word in temp_words:
+                            if re.match(r'^[a-zA-Z0-9]+$', word):
+                                words.append(word)
+                            else:
+                                # 中文按2-3字分组
+                                chars = list(word)
+                                for j in range(0, len(chars), 2):
+                                    group = ''.join(chars[j:j+2])
+                                    if group.strip():
+                                        words.append(group)
+                    else:
+                        words = tokens
+                    
+                    # 过滤空词
+                    words = [w.strip() for w in words if w.strip()]
+                    
+                    logger.info(f"  Smart segmentation: {len(words)} words from '{text[:50]}...'")
+                    logger.debug(f"  First 10 words: {words[:10]}")
+                    
                     chunk_duration = end_time - start_time
                     
-                    # Ensure minimum duration per word (0.1 seconds)
-                    min_duration_per_word = 0.1
-                    total_min_duration = len(words) * min_duration_per_word
+                    # 确保每个词至少0.3秒，最多1.2秒
+                    min_duration_per_word = 0.3
+                    max_duration_per_word = 1.2
                     
-                    if chunk_duration < total_min_duration:
-                        chunk_duration = total_min_duration
-                        end_time = start_time + chunk_duration
-                    
-                    # Distribute time evenly across words
-                    time_per_word = chunk_duration / len(words) if len(words) > 0 else 1.0
-                    
-                    for j, word in enumerate(words):
-                        word_start = start_time + (j * time_per_word)
-                        word_end = start_time + ((j + 1) * time_per_word)
+                    # 计算每个词的时间
+                    if len(words) > 0:
+                        time_per_word = chunk_duration / len(words)
+                        time_per_word = max(min_duration_per_word, min(time_per_word, max_duration_per_word))
                         
-                        formatted_result["segments"].append({
-                            "word": word,
-                            "start": word_start,
-                            "end": word_end
-                        })
+                        for j, word in enumerate(words):
+                            word_start = start_time + (j * time_per_word)
+                            word_end = start_time + ((j + 1) * time_per_word)
+                            
+                            formatted_result["segments"].append({
+                                "word": word.strip(),
+                                "start": word_start,
+                                "end": word_end
+                            })
+                        
+                        logger.info(f"  Created {len(words)} word segments, {time_per_word:.2f}s per word")
         else:
             # Fallback: create segments from full text with estimated timing
             full_text = result.get("text", "").strip()
             logger.info(f"No chunks found, processing full text (length: {len(full_text)})")
             if full_text:
-                words = full_text.split()
-                # Use a reasonable speaking rate: about 2.5 words per second
-                words_per_second = 2.5
+                import re
+                
+                # 智能中文分词 - 与上面保持一致
+                text_cleaned = re.sub(r'[，。！？、；：]', ' ', full_text)
+                words = []
+                
+                tokens = re.findall(r'[a-zA-Z]+|[0-9]+|[一-龯]', text_cleaned)
+                
+                if len(tokens) < len(text_cleaned.strip()) * 0.3:
+                    temp_words = text_cleaned.split()
+                    for word in temp_words:
+                        if re.match(r'^[a-zA-Z0-9]+$', word):
+                            words.append(word)
+                        else:
+                            chars = list(word)
+                            for j in range(0, len(chars), 2):
+                                group = ''.join(chars[j:j+2])
+                                if group.strip():
+                                    words.append(group)
+                else:
+                    words = tokens
+                
+                words = [w.strip() for w in words if w.strip()]
+                
+                logger.info(f"Smart segmentation of full text: {len(words)} words")
+                
+                # 使用更保守的语速：每秒1.5个词
+                words_per_second = 1.5
                 
                 for i, word in enumerate(words):
                     start_time = i / words_per_second
                     end_time = (i + 1) / words_per_second
                     
                     formatted_result["segments"].append({
-                        "word": word,
+                        "word": word.strip(),
                         "start": start_time,
                         "end": end_time
                     })
+                
+                logger.info(f"Created {len(words)} word segments from full text")
         
         logger.info(f"Created {len(formatted_result['segments'])} segments")
         
@@ -260,7 +323,7 @@ def format_timestamp(seconds):
     return f"{hours:02d}:{minutes:02d}:{seconds_val:02d},{milliseconds:03d}"
 
 def generate_subtitles_from_segments(segments, srt_path: Path, vtt_path: Path):
-    """Generate SRT and VTT files from segments with intelligent subtitle segmentation"""
+    """Generate SRT and VTT files from segments with ULTRA STRICT subtitle segmentation"""
     with open(srt_path, "w", encoding="utf-8") as srt_file, open(vtt_path, "w", encoding="utf-8") as vtt_file:
         vtt_file.write("WEBVTT\n\n")
         
@@ -272,13 +335,17 @@ def generate_subtitles_from_segments(segments, srt_path: Path, vtt_path: Path):
         current_words = []
         segment_start_time = None
         
-        logger.info(f"Generating subtitles with limits: {settings.MAX_SUBTITLE_DURATION}s, {settings.MAX_WORDS_PER_SUBTITLE} words, {settings.MAX_CHARS_PER_SUBTITLE} chars")
+        logger.info(f"🎬 Generating subtitles with ULTRA STRICT limits:")
+        logger.info(f"   ⏱️ MAX_SUBTITLE_DURATION: {settings.MAX_SUBTITLE_DURATION}s")
+        logger.info(f"   📝 MAX_WORDS_PER_SUBTITLE: {settings.MAX_WORDS_PER_SUBTITLE}")
+        logger.info(f"   📏 MAX_CHARS_PER_SUBTITLE: {settings.MAX_CHARS_PER_SUBTITLE}")
+        logger.info(f"   📊 Total segments to process: {len(segments)}")
         
-        # Process each word
+        # Process each word with ULTRA STRICT checking
         for i, segment in enumerate(segments):
             word = segment.get("word", "").strip()
             start_time = segment.get("start", 0.0)
-            end_time = segment.get("end", start_time + 0.1)
+            end_time = segment.get("end", start_time + 0.3)
             
             # Skip empty words
             if not word:
@@ -301,35 +368,60 @@ def generate_subtitles_from_segments(segments, srt_path: Path, vtt_path: Path):
             # Calculate current segment duration
             segment_duration = end_time - segment_start_time
             
-            # Check if we should end this subtitle
+            # 🚨 ULTRA STRICT checking - ANY condition triggers break
             should_end_subtitle = False
+            break_reason = ""
             
-            # 1. Time limit reached
+            # 1. 🔴 HARD TIME LIMIT - 绝对不能超过
             if segment_duration >= settings.MAX_SUBTITLE_DURATION:
                 should_end_subtitle = True
+                break_reason = f"HARD_TIME_LIMIT ({segment_duration:.1f}s >= {settings.MAX_SUBTITLE_DURATION}s)"
             
-            # 2. Word count limit reached
+            # 2. 🔴 HARD WORD LIMIT - 绝对不能超过
             elif len(current_words) >= settings.MAX_WORDS_PER_SUBTITLE:
                 should_end_subtitle = True
+                break_reason = f"HARD_WORD_LIMIT ({len(current_words)} >= {settings.MAX_WORDS_PER_SUBTITLE})"
             
-            # 3. Character count limit reached
+            # 3. 🔴 HARD CHAR LIMIT - 绝对不能超过
             elif len(current_text) >= settings.MAX_CHARS_PER_SUBTITLE:
                 should_end_subtitle = True
+                break_reason = f"HARD_CHAR_LIMIT ({len(current_text)} >= {settings.MAX_CHARS_PER_SUBTITLE})"
             
-            # 4. Natural sentence break (but ensure minimum 2 words)
-            elif word.endswith(('.', '!', '?')) and len(current_words) >= 2:
+            # 4. 🟡 EMERGENCY BREAK - 防止超长段落
+            elif segment_duration >= 2.0 and len(current_words) >= 4:
                 should_end_subtitle = True
+                break_reason = f"EMERGENCY_BREAK (2s+ with 4+ words)"
             
-            # 5. Last word
+            # 5. 🟡 Natural sentence break
+            elif (word.endswith(('.', '!', '?', '。', '！', '？')) and 
+                  len(current_words) >= 2 and 
+                  segment_duration >= 1.0):
+                should_end_subtitle = True
+                break_reason = "SENTENCE_END"
+            
+            # 6. 🔴 LAST WORD - 必须结束
             elif i == len(segments) - 1:
                 should_end_subtitle = True
+                break_reason = "LAST_SEGMENT"
+            
+            # 🔥 FORCE BREAK every 3 seconds regardless
+            if segment_duration >= 3.0 and len(current_words) >= 2:
+                should_end_subtitle = True
+                break_reason = f"FORCE_3S_BREAK ({segment_duration:.1f}s)"
             
             # Create subtitle entry
             if should_end_subtitle and current_words:
                 segment_end_time = current_words[-1]["end"]
+                actual_duration = segment_end_time - segment_start_time
                 
                 start_ts_str = format_timestamp(segment_start_time)
                 end_ts_str = format_timestamp(segment_end_time)
+                
+                # 🚨 Error check for ultra-long subtitles
+                if actual_duration > settings.MAX_SUBTITLE_DURATION * 2:
+                    logger.error(f"🚨 ULTRA-LONG subtitle detected: {actual_duration:.1f}s!")
+                    logger.error(f"   Text: '{current_text[:100]}...'")
+                    logger.error(f"   This should not happen with our strict limits!")
                 
                 # Write SRT
                 srt_file.write(f"{segment_id}\n{start_ts_str} --> {end_ts_str}\n{current_text}\n\n")
@@ -337,15 +429,24 @@ def generate_subtitles_from_segments(segments, srt_path: Path, vtt_path: Path):
                 # Write VTT
                 vtt_file.write(f"{start_ts_str.replace(',', '.')} --> {end_ts_str.replace(',', '.')}\n{current_text}\n\n")
                 
-                # Log for debugging
-                logger.debug(f"Subtitle {segment_id}: {segment_duration:.1f}s, {len(current_words)} words, {len(current_text)} chars")
+                # Detailed logging
+                logger.info(f"✅ Subtitle {segment_id}: {actual_duration:.1f}s, {len(current_words)}w, {len(current_text)}c - {break_reason}")
                 
                 # Reset for next segment
                 segment_id += 1
                 current_words = []
                 segment_start_time = None
         
-        logger.info(f"Generated {segment_id - 1} subtitle entries")
+        total_generated = segment_id - 1
+        logger.info(f"🎉 Generated {total_generated} subtitle entries")
+        
+        # Final validation check
+        if total_generated == 0:
+            logger.error("🚨 NO SUBTITLES GENERATED! This indicates a serious problem!")
+        elif total_generated < 5:
+            logger.warning(f"⚠️ Only {total_generated} subtitles generated. Check if this is expected.")
+        else:
+            logger.info(f"✅ Subtitle generation successful: {total_generated} entries")
 
 @celery_app.task(bind=True, name="app.tasks.create_transcription_task")
 def create_transcription_task(self, input_filepath_str: str, file_id: str, original_filename: str):

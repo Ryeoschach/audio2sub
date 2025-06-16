@@ -31,10 +31,10 @@ class Settings(BaseSettings):
     CHUNK_LENGTH_S: int = 30 # Length of audio chunks in seconds (minimum 15s recommended)
     STRIDE_LENGTH_S: int = 5 # Stride between chunks in seconds (for overlap, must be < chunk_length)
     
-    # Subtitle generation settings
-    MAX_SUBTITLE_DURATION: int = 6 # Maximum duration for a single subtitle entry (seconds)
-    MAX_WORDS_PER_SUBTITLE: int = 10 # Maximum number of words per subtitle entry
-    MAX_CHARS_PER_SUBTITLE: int = 60 # Maximum number of characters per subtitle entry
+    # Subtitle generation settings (更严格的限制)
+    MAX_SUBTITLE_DURATION: int = 4 # Maximum duration for a single subtitle entry (seconds)
+    MAX_WORDS_PER_SUBTITLE: int = 8 # Maximum number of words per subtitle entry
+    MAX_CHARS_PER_SUBTITLE: int = 50 # Maximum number of characters per subtitle entry
     
     # Number of threads for CTranslate2 computation - Not directly applicable to Transformers pipeline
     MODEL_NUM_WORKERS: int = 4  # Use single thread to avoid issues
