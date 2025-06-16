@@ -1,0 +1,60 @@
+services:
+  redis:
+    image: redis:alpine
+    container_name: audio2sub_redis_prod
+    ports:
+      - "6379:6379"
+    command: redis-server --requirepass redispassword
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile  # 使用生产环境优化的Dockerfile
+    container_name: audio2sub_backend_prod
+    ports:
+      - "8000:8000"
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=redispassword
+      - CELERY_BROKER_URL=redis://:redispassword@redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://:redispassword@redis:6379/0
+    depends_on:
+      - redis
+    restart: unless-stopped
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4
+
+  celery_worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile  # 使用生产环境优化的Dockerfile
+    container_name: audio2sub_celery_worker_prod
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=redispassword
+      - CELERY_BROKER_URL=redis://:redispassword@redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://:redispassword@redis:6379/0
+    depends_on:
+      - redis
+      - backend
+    restart: unless-stopped
+    command: celery -A celery_app.celery worker -l info --concurrency=2
+
+  # 前端服务 (生产环境)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: audio2sub_frontend_prod
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  redis_data:

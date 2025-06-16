@@ -5,7 +5,7 @@
 ## 技术栈
 
 - **后端:** FastAPI, Celery, Redis, faster-whisper, ffmpeg-python
-- **前端:** React, Vite, TypeScript, Tailwind CSS (推荐用于现代化 UI)
+- **前端:** React, Vite, TypeScript, Tailwind CSS
 - **容器化:** Docker, Docker Compose
 
 ## 目录结构
