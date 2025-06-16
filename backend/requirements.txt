@@ -3,8 +3,12 @@ uvicorn[standard]
 celery[redis]
 python-dotenv
 ffmpeg-python
-faster-whisper
 pydantic-settings
+torch
+torchaudio
+transformers
+accelerate
+insanely-fast-whisper
 
 # For development, you might want to add:
 # watchfiles

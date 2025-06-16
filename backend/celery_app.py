@@ -3,22 +3,30 @@ from app.config import settings
 
 # Initialize Celery
 celery_app = Celery(
-    __name__, # Using __name__ for the main module name
+    "audio2sub_tasks",
     broker=settings.CELERY_BROKER_URL,
     backend=settings.CELERY_RESULT_BACKEND,
     include=['app.tasks'] # List of modules to import when the worker starts
 )
 
-# Optional Celery configuration
+# Configuration for better stability with ML models
 celery_app.conf.update(
+    task_track_started=True,
     task_serializer='json',
-    accept_content=['json'],  # Ignore other content
     result_serializer='json',
+    accept_content=['json'],
+    result_expires=3600,
     timezone='UTC',
     enable_utc=True,
-    # task_track_started=True, # To report 'STARTED' state
-    # worker_prefetch_multiplier=1, # Disable prefetching if tasks are long-running
-    # task_acks_late=True, # Acknowledge tasks after they complete/fail
+    broker_connection_retry_on_startup=True,
+    # Use solo pool to avoid multiprocessing issues with ML models
+    worker_pool='solo',
+    # Increase task timeout for large files
+    task_soft_time_limit=3600,  # 1 hour
+    task_time_limit=3900,  # 1 hour 5 minutes
+    # Prevent memory leaks
+    worker_max_tasks_per_child=10,
+    worker_prefetch_multiplier=1,
 )
 
 # If you have a lot of tasks or complex routing, you might want to use autodiscover_tasks

@@ -69,29 +69,68 @@ async def upload_file_for_transcription(
 
 @app.get("/status/{task_id}", tags=["Transcription"])
 async def get_task_status(task_id: str):
-    task_result = create_transcription_task.AsyncResult(task_id)
-    if task_result.state == 'PENDING':
-        response = {
-            'state': task_result.state,
-            'status': 'Pending...'
+    try:
+        task_result = create_transcription_task.AsyncResult(task_id)
+        
+        if task_result.state == 'PENDING':
+            response = {
+                'state': task_result.state,
+                'status': 'Pending...'
+            }
+        elif task_result.state == 'FAILURE':
+            # Handle failure state more safely
+            try:
+                error_info = task_result.info
+                if isinstance(error_info, dict):
+                    error_message = error_info.get('status', 'Task failed')
+                else:
+                    error_message = str(error_info)
+            except Exception as e:
+                # Fallback if we can't get the error info
+                error_message = f"Task failed with unknown error: {str(e)}"
+            
+            response = {
+                'state': task_result.state,
+                'status': error_message,
+            }
+        elif task_result.state == 'SUCCESS':
+            response = {
+                'state': task_result.state,
+                'status': 'Completed',
+                'result': task_result.result
+            }
+        else:
+            # Handle PROGRESS or other states
+            try:
+                info = task_result.info
+                if isinstance(info, dict):
+                    status = info.get('status', f'Task state: {task_result.state}')
+                    progress = info.get('progress', 0)
+                    response = {
+                        'state': task_result.state,
+                        'status': status,
+                        'progress': progress
+                    }
+                else:
+                    response = {
+                        'state': task_result.state,
+                        'status': str(info) if info else f'Task state: {task_result.state}',
+                    }
+            except Exception as e:
+                # Fallback if we can't get task info
+                response = {
+                    'state': task_result.state,
+                    'status': f'Task state: {task_result.state}',
+                }
+        
+        return response
+        
+    except Exception as e:
+        # Handle any unexpected errors in status checking
+        return {
+            'state': 'ERROR',
+            'status': f'Error checking task status: {str(e)}'
         }
-    elif task_result.state == 'FAILURE':
-        response = {
-            'state': task_result.state,
-            'status': str(task_result.info),  # This is the exception raised
-        }
-    elif task_result.state == 'SUCCESS':
-        response = {
-            'state': task_result.state,
-            'status': 'Completed',
-            'result': task_result.result # This will contain { "transcript_path": "...", "original_filename": "..." }
-        }
-    else:
-        response = {
-            'state': task_result.state,
-            'status': str(task_result.info), # e.g. PROGRESS
-        }
-    return response
 
 @app.get("/results/{file_id}/{filename}", tags=["Transcription"])
 async def get_result_file(file_id: str, filename: str):
