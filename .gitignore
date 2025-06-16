@@ -106,4 +106,5 @@ lerna-debug.log*
 
 # If you have other log files or temporary files specific to your tools, add them here.
 
-.说明文档
+说明文档
+files-to-delete.txt
