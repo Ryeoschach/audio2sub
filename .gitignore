@@ -105,3 +105,5 @@ lerna-debug.log*
 /frontend/coverage/
 
 # If you have other log files or temporary files specific to your tools, add them here.
+
+.说明文档
