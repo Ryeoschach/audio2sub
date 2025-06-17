@@ -7,7 +7,7 @@ class Settings(BaseSettings):
 
     # Default to local Redis settings
     REDIS_HOST: str = "127.0.0.1"
-    REDIS_PORT: int = 16379  # User confirmed Redis is running on port 16379
+    REDIS_PORT: int = 26379  # User confirmed Redis is running on port 16379
     # REDIS_PASSWORD: str | None = "redispassword" # From 说明文档
     REDIS_PASSWORD: str | None = None  # Optional, can be set in .env file
 
@@ -28,7 +28,7 @@ class Settings(BaseSettings):
     MODEL_NUM_WORKERS: int = 1  # Use single thread to avoid issues
 
     # CORS settings
-    CORS_ORIGINS: List[str] = ["http://localhost:5173", "http://127.0.0.1:5173"]
+    CORS_ORIGINS: List[str] = ["http://localhost:5173", "http://127.0.0.1:5173", "http://frontend:5173"]
 
     # FFmpeg path (usually in PATH, but can be specified if needed)
     # FFMPEG_PATH: str = "/usr/bin/ffmpeg"

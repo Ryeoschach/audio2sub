@@ -10,7 +10,7 @@ export default defineConfig({
     proxy: {
       // Proxy API requests to the backend to avoid CORS issues during development
       '/api': {
-        target: 'http://localhost:8000', // Your backend address
+        target: process.env.VITE_API_URL || 'http://localhost:8000', // Your backend address
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, '')
       }

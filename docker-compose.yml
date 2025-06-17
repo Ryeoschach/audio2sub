@@ -3,11 +3,11 @@ services:
     image: redis:alpine
     container_name: audio2sub_redis
     ports:
-      - "6379:6379"
+      - "26379:6379"
     # 如果 Redis 需要密码，请取消注释并设置密码
     command: redis-server --requirepass redispassword
     volumes:
-      - redis_data:/data
+      - redis_data:/data  
 
   backend:
     build:
@@ -18,6 +18,7 @@ services:
       - "8000:8000"
     volumes:
       - ./backend:/app_backend  # 实时代码同步 (开发环境)
+      - /app_backend/.venv # 避免覆盖容器内的虚拟环境
       # - ./models_whisper:/models # 挂载 Whisper 模型目录 (如果本地下载)
     environment:
       - REDIS_HOST=redis
@@ -26,9 +27,11 @@ services:
       - CELERY_BROKER_URL=redis://:redispassword@redis:6379/0
       - CELERY_RESULT_BACKEND=redis://:redispassword@redis:6379/0
       # - MODEL_PATH=/models/faster-whisper-large-v3 # Whisper 模型路径
+      - ~/.cache/huggingface/hub:/root/.cache/huggingface/hub:ro
     depends_on:
       - redis
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    command: uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    restart: unless-stopped # 开发环境通常不需要重启策略，但可以根据需要调整
 
   celery_worker:
     build:
@@ -37,7 +40,9 @@ services:
     container_name: audio2sub_celery_worker
     volumes:
       - ./backend:/app_backend # 实时代码同步 (开发环境)
+      - /app_backend/.venv # 避免覆盖容器内的虚拟环境
       # - ./models_whisper:/models # 挂载 Whisper 模型目录
+      - ~/.cache/huggingface/hub:/root/.cache/huggingface/hub:ro
     environment:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
@@ -48,7 +53,8 @@ services:
     depends_on:
       - redis
       - backend # 可选，确保 backend 服务先启动，但通常 worker 独立
-    command: sh -c "celery -A celery_app.celery worker -l info" # 确保 celery_app.py 中定义了 celery 实例
+    command: uv run celery -A app.tasks worker --loglevel=info
+    restart: unless-stopped
 
   # 前端服务 (如果通过 Docker 运行)
   frontend:
@@ -60,9 +66,14 @@ services:
       - "5173:5173" # Vite 默认端口
     volumes:
       - ./frontend:/app_frontend # 实时代码同步 (开发环境)
-      - /app_frontend/node_modules # 避免覆盖容器内的 node_modules
+      - frontend_node_modules:/app_frontend/node_modules # 避免覆盖容器内的 node_modules
+    environment:
+      - VITE_API_URL=http://backend:8000 # 确保前端指向正确的后端地址
     depends_on:
       - backend
+    command: npm run dev -- --host 0.0.0.0
+    restart: unless-stopped
 
 volumes:
   redis_data:
+  frontend_node_modules:

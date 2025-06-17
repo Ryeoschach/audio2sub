@@ -17,7 +17,7 @@ COPY pyproject.toml uv.lock ./
 
 # Install dependencies including dev dependencies
 # Using --system flag since we're in a container
-RUN uv sync --frozen --no-cache --system
+RUN uv sync --frozen --no-cache
 
 # The application code will be mounted as volume in docker-compose
 # This allows for hot reload during development

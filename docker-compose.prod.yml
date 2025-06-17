@@ -3,7 +3,7 @@ services:
     image: redis:alpine
     container_name: audio2sub_redis_prod
     ports:
-      - "6379:6379"
+      - "26379:6379"
     command: redis-server --requirepass redispassword
     volumes:
       - redis_data:/data
