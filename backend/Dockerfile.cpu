@@ -2,13 +2,12 @@
 FROM python:3.11-slim
 
 # Install system dependencies
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
+    curl \
     git \
     build-essential \
     cmake \
-    pkg-config \
-    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
@@ -18,10 +17,24 @@ WORKDIR /app
 COPY pyproject.toml ./
 
 # Install Python dependencies
+RUN pip install --no-cache-dir --upgrade pip
 RUN pip install --no-cache-dir -e .
 
 # Create necessary directories
 RUN mkdir -p uploads results models
+
+# Copy local whisper.cpp project and compile in container for correct platform
+COPY whisper.cpp /tmp/whisper.cpp
+RUN cd /tmp/whisper.cpp && \
+    rm -rf build build_mps && \
+    make && \
+    ls -la build/bin/ && \
+    if [ -f "build/bin/whisper-cli" ]; then cp build/bin/whisper-cli /usr/local/bin/whisper-cli; \
+    elif [ -f "build/bin/main" ]; then cp build/bin/main /usr/local/bin/whisper-cli; \
+    else echo "No whisper executable found" && exit 1; fi && \
+    chmod +x /usr/local/bin/whisper-cli && \
+    cp models/ggml-base.bin /app/models/ggml-base.bin && \
+    rm -rf /tmp/whisper.cpp
 
 # Copy application code
 COPY . .
@@ -40,4 +53,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
   CMD curl -f http://localhost:8000/health || exit 1
 
 # Run the application
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

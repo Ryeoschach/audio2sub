@@ -15,4 +15,5 @@ dependencies = [
     "uvicorn[standard]>=0.34.3",
     "numpy>=1.24.0",
     "httpx>=0.24.0",
+    "flower>=2.0.1",
 ]

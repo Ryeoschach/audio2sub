@@ -55,7 +55,10 @@ async def health_check():
         
         # 检查whisper.cpp可用性
         manager = get_whisper_manager()
-        whisper_status = "available" if manager.whisper_cpp_path else "unavailable"
+        whisper_status = "available" if settings.is_whisper_available() else "unavailable"
+        
+        # 检查模型文件
+        model_status = "available" if settings.is_model_available() else "unavailable"
         
         # 检查Redis连接
         import redis
@@ -63,20 +66,26 @@ async def health_check():
             r = redis.Redis(
                 host=settings.REDIS_HOST,
                 port=settings.REDIS_PORT,
+                password=settings.REDIS_PASSWORD,
                 db=settings.REDIS_DB,
                 decode_responses=True
             )
             r.ping()
             redis_status = "connected"
-        except:
-            redis_status = "disconnected"
+        except Exception as e:
+            redis_status = f"disconnected ({str(e)})"
+        
+        # 获取部署信息
+        deployment_info = settings.get_deployment_info()
         
         return {
-            "status": "healthy",
+            "status": "healthy" if (whisper_status == "available" and 
+                                  model_status == "available" and 
+                                  "connected" in redis_status) else "unhealthy",
             "whisper_cpp": whisper_status,
+            "model": model_status,
             "redis": redis_status,
-            "model": settings.MODEL_NAME,
-            "device": settings.WHISPER_DEVICE
+            "deployment": deployment_info
         }
     except Exception as e:
         return {

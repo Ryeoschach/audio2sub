@@ -22,7 +22,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
-WORKDIR /app_backend
+WORKDIR /app
 
 # Copy the virtual environment from builder stage
 COPY --from=builder /app/.venv /app/.venv

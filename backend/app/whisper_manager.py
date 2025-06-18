@@ -8,6 +8,7 @@ from typing import Optional, Dict, Any, List
 from datetime import timedelta
 import platform
 import requests
+import shutil
 
 from .config import settings
 
@@ -34,41 +35,166 @@ class WhisperManager:
     def __init__(self):
         self.models_dir = Path("models")
         self.models_dir.mkdir(exist_ok=True)
-        self.whisper_cpp_path = self._find_whisper_cpp()
+        self.whisper_cpp_path = self._find_or_compile_whisper_cpp()
     
-    def _find_whisper_cpp(self) -> Optional[str]:
-        """Find whisper.cpp executable"""
-        # First try the configured path
+    def _get_whisper_build_dir(self) -> Path:
+        """Get the whisper.cpp build directory based on deployment mode"""
+        if hasattr(settings, 'DEPLOYMENT_MODE'):
+            if settings.DEPLOYMENT_MODE == 'native':
+                # For native mode, use a local build directory
+                return Path.home() / ".audio2sub" / "whisper.cpp"
+            elif settings.DEPLOYMENT_MODE == 'hybrid':
+                # For hybrid mode, whisper.cpp is already compiled in container
+                return Path("/usr/local/bin")
+        
+        # Default location
+        return Path.cwd() / "whisper.cpp"
+    
+    def _detect_optimal_build_flags(self) -> Dict[str, str]:
+        """Detect optimal build flags for the current system"""
+        build_flags = {}
+        system = platform.system().lower()
+        machine = platform.machine().lower()
+        
+        if system == "darwin":  # macOS
+            if machine in ["arm64", "aarch64"]:
+                # Apple Silicon - use Metal acceleration
+                build_flags["WHISPER_METAL"] = "1"
+                logger.info("Detected Apple Silicon, enabling Metal acceleration")
+            else:
+                # Intel Mac - use basic optimizations
+                build_flags["WHISPER_NO_ACCELERATE"] = "0"  # Enable Accelerate framework
+                logger.info("Detected Intel Mac, enabling Accelerate framework")
+        
+        elif system == "linux":
+            # Check for NVIDIA GPU
+            try:
+                result = subprocess.run(["nvidia-smi"], capture_output=True, text=True, timeout=5)
+                if result.returncode == 0:
+                    build_flags["WHISPER_CUDA"] = "1"
+                    logger.info("Detected NVIDIA GPU, enabling CUDA acceleration")
+            except (subprocess.TimeoutExpired, FileNotFoundError):
+                logger.info("No NVIDIA GPU detected, using CPU optimizations")
+        
+        return build_flags
+    
+    def _compile_whisper_cpp(self, build_dir: Path) -> Optional[str]:
+        """Dynamically compile whisper.cpp with optimal settings for current system"""
+        try:
+            logger.info(f"Compiling whisper.cpp in {build_dir}")
+            
+            # Create build directory if it doesn't exist
+            build_dir.mkdir(parents=True, exist_ok=True)
+            
+            # Clone whisper.cpp if not exists
+            if not (build_dir / "CMakeLists.txt").exists():
+                logger.info("Cloning whisper.cpp repository...")
+                subprocess.run([
+                    "git", "clone", 
+                    "https://github.com/ggerganov/whisper.cpp.git", 
+                    str(build_dir)
+                ], check=True, timeout=120)
+            
+            # Detect optimal build flags
+            build_flags = self._detect_optimal_build_flags()
+            
+            # Create build subdirectory
+            cmake_build_dir = build_dir / "build"
+            cmake_build_dir.mkdir(exist_ok=True)
+            
+            # Prepare CMake command
+            cmake_cmd = ["cmake", ".."]
+            for flag, value in build_flags.items():
+                cmake_cmd.append(f"-D{flag}={value}")
+            
+            # Run CMake configuration
+            logger.info(f"Running CMake: {' '.join(cmake_cmd)}")
+            subprocess.run(cmake_cmd, cwd=cmake_build_dir, check=True, timeout=60)
+            
+            # Compile
+            make_cmd = ["make", "-j", str(os.cpu_count() or 4)]
+            logger.info(f"Compiling with: {' '.join(make_cmd)}")
+            subprocess.run(make_cmd, cwd=cmake_build_dir, check=True, timeout=300)
+            
+            # Find the compiled executable
+            whisper_exe = cmake_build_dir / "bin" / "whisper-cli"
+            if whisper_exe.exists() and whisper_exe.is_file():
+                # Make executable
+                whisper_exe.chmod(0o755)
+                logger.info(f"Successfully compiled whisper.cpp at: {whisper_exe}")
+                return str(whisper_exe)
+            else:
+                logger.error(f"Compiled whisper.cpp not found at expected location: {whisper_exe}")
+                return None
+                
+        except subprocess.CalledProcessError as e:
+            logger.error(f"Failed to compile whisper.cpp: {e}")
+            return None
+        except Exception as e:
+            logger.error(f"Unexpected error during whisper.cpp compilation: {e}")
+            return None
+    
+    def _find_or_compile_whisper_cpp(self) -> Optional[str]:
+        """Find existing whisper.cpp or compile it dynamically"""
+        # In hybrid/docker mode, whisper.cpp should already be available
+        if (hasattr(settings, 'DEPLOYMENT_MODE') and 
+            settings.DEPLOYMENT_MODE in ['hybrid', 'docker']):
+            whisper_path = "/usr/local/bin/whisper-cli"
+            if os.path.exists(whisper_path) and os.access(whisper_path, os.X_OK):
+                logger.info(f"Found whisper.cpp in container at: {whisper_path}")
+                return whisper_path
+            else:
+                logger.warning(f"whisper.cpp not found in container at: {whisper_path}")
+        
+        # Try configured path first
         if hasattr(settings, 'WHISPER_CPP_PATH') and settings.WHISPER_CPP_PATH:
             whisper_path = Path(settings.WHISPER_CPP_PATH)
             if whisper_path.exists() and whisper_path.is_file():
                 logger.info(f"Found whisper.cpp at configured path: {whisper_path}")
                 return str(whisper_path)
         
-        # Common paths where whisper.cpp might be installed
-        possible_paths = [
-            "whisper",  # If in PATH
-            "/usr/local/bin/whisper",
-            "/opt/homebrew/bin/whisper",
-            "./whisper",  # Local build
-            "../whisper.cpp/main",  # If built from source in parent directory
-            "/Users/creed/workspace/sourceCode/whisper.cpp/build/bin/whisper-cli",  # Default local build
+        # Search common installation paths
+        common_paths = [
+            "whisper-cli",  # If in PATH
+            "/usr/local/bin/whisper-cli",
+            "/opt/homebrew/bin/whisper-cli",
+            "/Users/creed/workspace/sourceCode/whisper.cpp/build/bin/whisper-cli",  # Local build
         ]
         
-        for path in possible_paths:
+        for path in common_paths:
             try:
                 result = subprocess.run([path, "--help"], capture_output=True, text=True, timeout=5)
                 if result.returncode == 0:
-                    logger.info(f"Found whisper.cpp at: {path}")
+                    logger.info(f"Found existing whisper.cpp at: {path}")
                     return path
             except (subprocess.TimeoutExpired, FileNotFoundError, subprocess.SubprocessError):
                 continue
         
-        logger.warning("whisper.cpp not found. Please install whisper.cpp and make sure it's in PATH")
+        # If not found and in native mode, try to compile dynamically
+        if (hasattr(settings, 'DEPLOYMENT_MODE') and 
+            settings.DEPLOYMENT_MODE == 'native'):
+            logger.info("whisper.cpp not found, attempting dynamic compilation...")
+            build_dir = self._get_whisper_build_dir()
+            compiled_path = self._compile_whisper_cpp(build_dir)
+            if compiled_path:
+                return compiled_path
+        
+        logger.warning("whisper.cpp not found and compilation failed/not attempted")
         return None
     
     def _download_model(self, model_name: str) -> Path:
         """Download whisper.cpp model if not exists"""
+        # In hybrid mode, try mounted models first
+        if (hasattr(settings, 'DEPLOYMENT_MODE') and 
+            settings.DEPLOYMENT_MODE == 'hybrid'):
+            # In hybrid mode, models might be mounted at /app/models/
+            model_file = Path(f"/app/models/ggml-{model_name}.bin")
+            if model_file.exists():
+                logger.info(f"Using mounted model in hybrid mode: {model_file}")
+                return model_file
+            else:
+                logger.info(f"Model {model_name} not found in mounted path: {model_file}, will download")
+        
         model_file = self.models_dir / f"ggml-{model_name}.bin"
         
         if model_file.exists():
