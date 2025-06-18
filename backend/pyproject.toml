@@ -3,15 +3,20 @@ name = "backend"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.11"
 dependencies = [
     "celery[redis]>=5.5.3",
     "fastapi>=0.115.12",
     "faster-whisper>=1.1.1",
     "ffmpeg-python>=0.2.0",
+    "librosa>=0.11.0",
+    "numpy<2",
+    "openai-whisper>=20240930",
     "pydantic-settings>=2.9.1",
     "python-dotenv>=1.1.0",
     "python-multipart>=0.0.20",
     "requests>=2.32.4",
+    "torch==2.1.0",
+    "transformers>=4.52.4",
     "uvicorn[standard]>=0.34.3",
 ]
