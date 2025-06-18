@@ -53,8 +53,8 @@ venv.bak/
 results/
 uploads/
 
-# Models (these should be volumes if needed)
-models/
+# Models - Allow copying pre-downloaded models to container
+# models/
 models_whisper/
 
 # Cache

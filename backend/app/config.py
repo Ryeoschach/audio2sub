@@ -16,7 +16,7 @@ class Settings(BaseSettings):
 
     # Default to local Redis settings
     REDIS_HOST: str = "127.0.0.1"
-    REDIS_PORT: int = 16379  # 使用Redis默认端口
+    REDIS_PORT: int = 6379  # 使用Redis默认端口
     REDIS_PASSWORD: str | None = None  # 使用密码
     REDIS_DB: int = 0
 
@@ -259,7 +259,7 @@ class Settings(BaseSettings):
         elif self._deployment_mode == "native":
             # 原生模式使用本地Redis或容器Redis
             self.REDIS_HOST = "localhost"
-            self.REDIS_PORT = 16379
+            self.REDIS_PORT = 6379
     
     @property
     def is_whisper_available(self) -> bool:
@@ -507,3 +507,6 @@ class Settings(BaseSettings):
 
     class Config:
         env_file = ".env"
+
+# 创建全局设置实例
+settings = Settings()

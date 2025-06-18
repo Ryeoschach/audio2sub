@@ -5,6 +5,7 @@ FROM python:3.11-slim
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
     curl \
+    wget \
     git \
     build-essential \
     cmake \
@@ -23,23 +24,34 @@ RUN pip install --no-cache-dir -e .
 # Create necessary directories
 RUN mkdir -p uploads results models
 
-# Copy local whisper.cpp project and compile in container for correct platform
-COPY whisper.cpp /tmp/whisper.cpp
-RUN cd /tmp/whisper.cpp && \
-    rm -rf build build_mps && \
-    make && \
-    ls -la build/bin/ && \
-    if [ -f "build/bin/whisper-cli" ]; then cp build/bin/whisper-cli /usr/local/bin/whisper-cli; \
+# Download and compile whisper.cpp from source
+RUN git clone https://github.com/ggerganov/whisper.cpp.git /tmp/whisper.cpp && \
+    cd /tmp/whisper.cpp && \
+    cmake -B build -DCMAKE_BUILD_TYPE=Release && \
+    cmake --build build --config Release --parallel $(nproc) && \
+    ls -la build/ && \
+    if [ -f "build/main" ]; then cp build/main /usr/local/bin/whisper-cli; \
     elif [ -f "build/bin/main" ]; then cp build/bin/main /usr/local/bin/whisper-cli; \
-    else echo "No whisper executable found" && exit 1; fi && \
+    elif [ -f "build/bin/whisper-cli" ]; then cp build/bin/whisper-cli /usr/local/bin/whisper-cli; \
+    else echo "No whisper executable found" && find build/ -name "*whisper*" -o -name "*main*" && exit 1; fi && \
     chmod +x /usr/local/bin/whisper-cli && \
-    cp models/ggml-base.bin /app/models/ggml-base.bin && \
-    rm -rf /tmp/whisper.cpp
+    # Test the compiled binary
+    /usr/local/bin/whisper-cli --help || echo "Whisper binary compiled successfully" 
+    # rm -rf /tmp/whisper.cpp
+# Copy pre-downloaded models to the container
+COPY models/ /app/models/
+
+# Verify whisper-cli installation
+RUN /usr/local/bin/whisper-cli --help && echo "✅ whisper-cli is working" || echo "❌ whisper-cli failed"
+RUN ls -la /usr/local/bin/ | grep whisper || echo "No whisper binaries found in /usr/local/bin/"
+RUN which whisper-cli || echo "whisper-cli not in PATH"
+RUN ls -la /app/models/ && echo "✅ Models copied successfully"
 
 # Copy application code
 COPY . .
 
 # Set environment variables for CPU optimization
+ENV DEPLOYMENT_MODE=docker
 ENV WHISPER_DEVICE=cpu
 ENV WHISPER_THREADS=0
 ENV OMP_NUM_THREADS=4
