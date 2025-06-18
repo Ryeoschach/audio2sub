@@ -31,14 +31,14 @@ RESULTS_DIR = Path(settings.RESULTS_DIR)
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 RESULTS_DIR.mkdir(parents=True, exist_ok=True)
 
-def transcribe_with_whisper(audio_file_path: str) -> Dict[str, Any]:
+def transcribe_with_whisper_cpp(audio_file_path: str) -> Dict[str, Any]:
     """
-    Use OpenAI Whisper for transcription with optimized settings
+    Use whisper.cpp for transcription with optimized settings
     """
     start_time = time.time()
     
     try:
-        logger.info(f"Starting transcription with OpenAI Whisper for {audio_file_path}")
+        logger.info(f"Starting transcription with whisper.cpp for {audio_file_path}")
         logger.info(f"Transcription started at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
         
         # Get whisper manager and perform transcription
@@ -181,20 +181,10 @@ def generate_subtitles_from_segments(segments, srt_path: Path, vtt_path: Path):
         total_generated = segment_id - 1
         logger.info(f"🎉 Generated {total_generated} subtitle entries")
 
-def safe_update_state(self, state, meta=None):
-    """Safe wrapper for update_state that works both in Celery and direct call contexts"""
-    try:
-        if hasattr(self, 'update_state') and hasattr(self, 'request') and self.request.id:
-            self.update_state(state=state, meta=meta)
-        else:
-            logger.info(f"State update: {state} - {meta}")
-    except Exception as e:
-        logger.warning(f"Could not update state: {e}")
-
 @celery_app.task(bind=True, name="app.tasks.create_transcription_task")
 def create_transcription_task(self, input_filepath_str: str, file_id: str, original_filename: str):
     """
-    Process audio/video file and generate transcription with OpenAI Whisper
+    Process audio/video file and generate transcription with whisper.cpp
     """
     # Record overall start time
     overall_start_time = time.time()
@@ -216,7 +206,7 @@ def create_transcription_task(self, input_filepath_str: str, file_id: str, origi
     subtitle_generation_time = 0
     
     try:
-        safe_update_state(self, state='PROGRESS', meta={'status': 'Processing file...', 'progress': 10})
+        self.update_state(state='PROGRESS', meta={'status': 'Processing file...', 'progress': 10})
         
         # Handle video files - extract audio
         video_extensions = {'.mov', '.mp4', '.avi', '.mkv', '.webm', '.flv', '.wmv'}
@@ -245,7 +235,7 @@ def create_transcription_task(self, input_filepath_str: str, file_id: str, origi
             except Exception as e:
                 error_msg = str(e.stderr.decode() if hasattr(e, 'stderr') and e.stderr else e)
                 logger.error(f"FFmpeg Error for {original_filename}: {error_msg}")
-                safe_update_state(self,
+                self.update_state(
                     state='FAILURE', 
                     meta={
                         'status': f'FFmpeg error: {error_msg}',
@@ -260,7 +250,7 @@ def create_transcription_task(self, input_filepath_str: str, file_id: str, origi
         if input_filepath.suffix.lower() not in audio_extensions and temp_audio_path is None:
             error_msg = f"Unsupported file format: {input_filepath.suffix}"
             logger.error(error_msg)
-            safe_update_state(self,
+            self.update_state(
                 state='FAILURE', 
                 meta={
                     'status': error_msg,
@@ -270,15 +260,15 @@ def create_transcription_task(self, input_filepath_str: str, file_id: str, origi
             )
             return
         
-        safe_update_state(self, state='PROGRESS', meta={'status': 'Starting transcription...', 'progress': 30})
+        self.update_state(state='PROGRESS', meta={'status': 'Starting transcription...', 'progress': 30})
         
-        # Use OpenAI Whisper for transcription
-        logger.info(f"🎙️ Starting transcription with OpenAI Whisper model: {settings.MODEL_NAME}")
-        transcription_data = transcribe_with_whisper(str(audio_file_to_transcribe))
+        # Use whisper.cpp for transcription
+        logger.info(f"🎙️ Starting transcription with whisper.cpp model: {settings.MODEL_NAME}")
+        transcription_data = transcribe_with_whisper_cpp(str(audio_file_to_transcribe))
         transcription_time = transcription_data.get("total_processing_time", 0)
         
         logger.info(f"✅ Transcription completed")
-        safe_update_state(self, state='PROGRESS', meta={'status': 'Generating subtitles...', 'progress': 80})
+        self.update_state(state='PROGRESS', meta={'status': 'Generating subtitles...', 'progress': 80})
         
         # Generate subtitle files
         subtitle_start = time.time()
@@ -339,7 +329,7 @@ def create_transcription_task(self, input_filepath_str: str, file_id: str, origi
     except Exception as e:
         total_time = time.time() - overall_start_time
         logger.error(f"❌ Error during transcription for {original_filename} after {total_time:.2f} seconds: {e}", exc_info=True)
-        safe_update_state(self,
+        self.update_state(
             state='FAILURE', 
             meta={
                 'status': f'Error: {str(e)}',

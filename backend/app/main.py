@@ -30,6 +30,60 @@ RESULTS_DIR = Path("results")
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 RESULTS_DIR.mkdir(parents=True, exist_ok=True)
 
+@app.get("/")
+async def root():
+    """根路径 - 返回API基本信息"""
+    return {
+        "app": "Audio2Sub Backend",
+        "version": "0.1.0", 
+        "description": "Audio transcription service using whisper.cpp",
+        "endpoints": {
+            "upload": "/upload/",
+            "status": "/status/{task_id}",
+            "results": "/results/{file_id}/{filename}",
+            "health": "/health",
+            "ping": "/ping"
+        }
+    }
+
+@app.get("/health")
+async def health_check():
+    """健康检查端点"""
+    try:
+        from .config import settings
+        from .whisper_manager import get_whisper_manager
+        
+        # 检查whisper.cpp可用性
+        manager = get_whisper_manager()
+        whisper_status = "available" if manager.whisper_cpp_path else "unavailable"
+        
+        # 检查Redis连接
+        import redis
+        try:
+            r = redis.Redis(
+                host=settings.REDIS_HOST,
+                port=settings.REDIS_PORT,
+                db=settings.REDIS_DB,
+                decode_responses=True
+            )
+            r.ping()
+            redis_status = "connected"
+        except:
+            redis_status = "disconnected"
+        
+        return {
+            "status": "healthy",
+            "whisper_cpp": whisper_status,
+            "redis": redis_status,
+            "model": settings.MODEL_NAME,
+            "device": settings.WHISPER_DEVICE
+        }
+    except Exception as e:
+        return {
+            "status": "unhealthy",
+            "error": str(e)
+        }
+
 @app.get("/ping")
 async def ping():
     return {"ping": "pong!"}

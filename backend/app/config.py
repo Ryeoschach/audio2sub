@@ -1,5 +1,6 @@
 from pydantic_settings import BaseSettings
 from typing import List, Optional
+import os
 
 class Settings(BaseSettings):
     APP_NAME: str = "Audio2Sub Backend"
@@ -7,47 +8,54 @@ class Settings(BaseSettings):
 
     # Default to local Redis settings
     REDIS_HOST: str = "127.0.0.1"
-    REDIS_PORT: int = 6379  # User confirmed Redis is running on port 16379
-    REDIS_PASSWORD: str | None = "redispassword" # From 说明文档
-    # REDIS_PASSWORD: str | None = None  # Optional, can be set in .env file
-
+    REDIS_PORT: int = 16379  # 使用Redis默认端口
+    REDIS_PASSWORD: str | None = None  # 使用密码
     REDIS_DB: int = 0
 
     # Default Celery broker and result backend to local Redis with password
-    # Ensure these are constructed correctly, especially if REDIS_PASSWORD can be None
-    CELERY_BROKER_URL: Optional[str] = None # Will be constructed in __init__
-    CELERY_RESULT_BACKEND: Optional[str] = None # Will be constructed in __init__
+    CELERY_BROKER_URL: Optional[str] = None
+    CELERY_RESULT_BACKEND: Optional[str] = None
 
-    # Path where Whisper models are stored (if downloaded locally)
-    # For Hugging Face Transformers, models are typically cached automatically.
-    # MODEL_PATH can be used if you have a specific local directory for models.
-    MODEL_PATH: Optional[str] = None 
-    MODEL_NAME: str = "openai/whisper-large-v3-turbo" # Valid Hugging Face model ID
-    MODEL_DEVICE: str = "mps" # "mps" for Apple Silicon, "cuda" for NVIDIA, "cpu"
-    TORCH_DTYPE: str = "float16" # PyTorch dtype for model, e.g., "float16", "float32". MPS often prefers float16.
+    # Whisper.cpp executable path
+    WHISPER_CPP_PATH: str = "/Users/creed/workspace/sourceCode/whisper.cpp/build/bin/whisper-cli"
     
-    # Performance optimization settings
-    BATCH_SIZE: int = 4 # Batch size for processing audio chunks (lower for stability)
-    CHUNK_LENGTH_S: int = 30 # Length of audio chunks in seconds (minimum 15s recommended)
-    STRIDE_LENGTH_S: int = 5 # Stride between chunks in seconds (for overlap, must be < chunk_length)
+    # Whisper.cpp model configuration
+    MODEL_PATH: str = "models/ggml-base.bin"  # Path to whisper.cpp model file
+    MODEL_NAME: str = "base"  # Model size: tiny, base, small, medium, large-v1, large-v2, large-v3
     
-    # Subtitle generation settings (更严格的限制)
-    MAX_SUBTITLE_DURATION: int = 4 # Maximum duration for a single subtitle entry (seconds)
-    MAX_WORDS_PER_SUBTITLE: int = 8 # Maximum number of words per subtitle entry
-    MAX_CHARS_PER_SUBTITLE: int = 50 # Maximum number of characters per subtitle entry
+    # Processing device configuration
+    # whisper.cpp supports: "cpu", "cuda", "metal" (for Apple Silicon)
+    WHISPER_DEVICE: str = "auto"  # auto, cpu, cuda, metal
     
-    # Number of threads for CTranslate2 computation - Not directly applicable to Transformers pipeline
-    MODEL_NUM_WORKERS: int = 4  # Use single thread to avoid issues
-
+    # Whisper.cpp processing parameters
+    WHISPER_THREADS: int = 0  # 0 = auto-detect optimal thread count
+    WHISPER_PROCESSORS: int = 1  # Number of processors to use
+    
+    # Language and task settings
+    WHISPER_LANGUAGE: str = "auto"  # "auto" for auto-detection, or specific language code
+    WHISPER_TASK: str = "transcribe"  # "transcribe" or "translate"
+    
+    # Audio processing settings
+    WHISPER_MAX_LEN: int = 0  # Maximum length to process (0 = no limit)
+    WHISPER_SPLIT_ON_WORD: bool = True  # Split on word boundaries
+    WHISPER_WORD_TIMESTAMPS: bool = True  # Enable word-level timestamps
+    
+    # Model performance settings
+    WHISPER_TEMPERATURE: float = 0.0  # Temperature for sampling (0.0 = deterministic)
+    WHISPER_BEST_OF: int = 5  # Number of candidates to consider
+    WHISPER_BEAM_SIZE: int = 5  # Beam size for beam search
+    
+    # Subtitle generation settings
+    MAX_SUBTITLE_DURATION: int = 4  # Maximum duration for a single subtitle entry (seconds)
+    MAX_WORDS_PER_SUBTITLE: int = 8  # Maximum number of words per subtitle entry
+    MAX_CHARS_PER_SUBTITLE: int = 50  # Maximum number of characters per subtitle entry
+    
     # CORS settings
     CORS_ORIGINS: List[str] = ["http://localhost:5173", "http://127.0.0.1:5173"]
 
     # File upload and results directories
     UPLOAD_DIR: str = "uploads"
     RESULTS_DIR: str = "results"
-
-    # FFmpeg path (usually in PATH, but can be specified if needed)
-    # FFMPEG_PATH: str = "/usr/bin/ffmpeg"
 
     class Config:
         env_file = ".env" # This will override defaults if .env file exists
@@ -68,7 +76,5 @@ class Settings(BaseSettings):
         import os
         os.makedirs(self.UPLOAD_DIR, exist_ok=True)
         os.makedirs(self.RESULTS_DIR, exist_ok=True)
-
-settings = Settings()
 
 settings = Settings()
