@@ -30,6 +30,7 @@ class WhisperManager:
         "large-v1": "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v1.bin",
         "large-v2": "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v2.bin",
         "large-v3": "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3.bin",
+        "large-v3-turbo": "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo.bin",
     }
     
     def __init__(self):
@@ -232,20 +233,33 @@ class WhisperManager:
                 model_file.unlink()  # Remove partially downloaded file
             raise RuntimeError(f"Failed to download model {model_name}: {e}")
     
-    def transcribe(self, audio_file_path: str) -> Dict[str, Any]:
-        """Transcribe audio file using whisper.cpp command line tool"""
+    def transcribe(self, audio_file_path: str, model_name: str = None, language: str = None, task_type: str = None) -> Dict[str, Any]:
+        """
+        Transcribe audio file using whisper.cpp command line tool
+        
+        Args:
+            audio_file_path: 音频文件路径
+            model_name: 模型名称 (可选，覆盖默认配置)
+            language: 语言代码 (可选，覆盖默认配置)
+            task_type: 任务类型 (可选，覆盖默认配置)
+        """
         if not self.whisper_cpp_path:
             # Fallback: create mock transcription for testing
             logger.warning("whisper.cpp not available, creating mock transcription")
             return self._create_mock_transcription(audio_file_path)
         
+        # 使用传入的参数或默认配置
+        final_model_name = model_name or settings.MODEL_NAME
+        final_language = language or settings.WHISPER_LANGUAGE
+        final_task_type = task_type or settings.WHISPER_TASK
+        
         try:
             logger.info(f"Starting transcription with whisper.cpp for {audio_file_path}")
+            logger.info(f"Using model: {final_model_name}, language: {final_language}, task: {final_task_type}")
             start_time = time.time()
             
             # Download model if needed
-            model_name = settings.MODEL_NAME
-            model_path = self._download_model(model_name)
+            model_path = self._download_model(final_model_name)
             
             # Prepare whisper.cpp command
             cmd = [
@@ -261,10 +275,10 @@ class WhisperManager:
             if settings.WHISPER_THREADS > 0:
                 cmd.extend(["-t", str(settings.WHISPER_THREADS)])
             
-            if settings.WHISPER_LANGUAGE != "auto":
-                cmd.extend(["-l", settings.WHISPER_LANGUAGE])
+            if final_language != "auto":
+                cmd.extend(["-l", final_language])
             
-            if settings.WHISPER_TASK == "translate":
+            if final_task_type == "translate":
                 cmd.append("--translate")
             
             # Run whisper.cpp

@@ -69,6 +69,27 @@ celery -A celery_app.celery_app worker --loglevel=info
 uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
 
+## 🧪 测试验证
+
+### 快速测试
+```bash
+# 运行测试套件 (推荐)
+cd scripts/testing
+./quick_test.sh
+
+# 或者直接运行特定测试
+./run_tests.sh quick    # 快速API验证  
+./run_tests.sh full     # 完整性能测试
+./run_tests.sh chinese  # 中文语音测试
+```
+
+### 测试套件说明
+- **生产测试** (`scripts/testing/production/`): 核心功能验证
+- **开发测试** (`scripts/testing/development/`): 调试和开发工具
+- **前端测试** (`scripts/testing/test_api_page.html`): 可视化测试界面
+
+详细测试文档: [测试指南](scripts/testing/README.md)
+
 ## 📖 文档指南
 
 ### 🔧 配置文档

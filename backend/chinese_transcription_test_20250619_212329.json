@@ -1,0 +1,118 @@
+[
+  {
+    "config": {
+      "name": "自动检测 + tiny模型",
+      "model": "tiny",
+      "language": "auto",
+      "output_format": "srt"
+    },
+    "success": true,
+    "result": {
+      "status": "Completed",
+      "files": [
+        {
+          "type": "srt",
+          "filename": "chinese_test_tiny.srt",
+          "path": "results/f5bcb14a-afd3-4bf9-afeb-6c6f3ba138cb/chinese_test_tiny.srt"
+        }
+      ],
+      "original_filename": "chinese_test_tiny.wav",
+      "file_id": "f5bcb14a-afd3-4bf9-afeb-6c6f3ba138cb",
+      "full_text": "",
+      "transcription_params": {
+        "model": "tiny",
+        "language": "auto",
+        "output_format": "srt",
+        "task_type": "transcribe"
+      },
+      "timing": {
+        "total_time": 0.047573089599609375,
+        "total_time_formatted": "0:00:00",
+        "ffmpeg_time": 0,
+        "transcription_time": 0.042681217193603516,
+        "subtitle_generation_time": 0.0006070137023925781,
+        "start_time": "2025-06-19T21:23:20.886630",
+        "end_time": "2025-06-19T21:23:20.934204"
+      }
+    }
+  },
+  {
+    "config": {
+      "name": "指定中文 + base模型",
+      "model": "base",
+      "language": "zh",
+      "output_format": "both"
+    },
+    "success": true,
+    "result": {
+      "status": "Completed",
+      "files": [
+        {
+          "type": "srt",
+          "filename": "chinese_test_base.srt",
+          "path": "results/f8804108-2eb9-4bc5-bdb5-ac5a77be4402/chinese_test_base.srt"
+        },
+        {
+          "type": "vtt",
+          "filename": "chinese_test_base.vtt",
+          "path": "results/f8804108-2eb9-4bc5-bdb5-ac5a77be4402/chinese_test_base.vtt"
+        }
+      ],
+      "original_filename": "chinese_test_base.wav",
+      "file_id": "f8804108-2eb9-4bc5-bdb5-ac5a77be4402",
+      "full_text": "",
+      "transcription_params": {
+        "model": "base",
+        "language": "zh",
+        "output_format": "both",
+        "task_type": "transcribe"
+      },
+      "timing": {
+        "total_time": 0.08231210708618164,
+        "total_time_formatted": "0:00:00",
+        "ffmpeg_time": 0,
+        "transcription_time": 0.07661700248718262,
+        "subtitle_generation_time": 0.00036787986755371094,
+        "start_time": "2025-06-19T21:23:23.911924",
+        "end_time": "2025-06-19T21:23:23.994237"
+      }
+    }
+  },
+  {
+    "config": {
+      "name": "指定中文 + small模型",
+      "model": "small",
+      "language": "zh",
+      "output_format": "vtt"
+    },
+    "success": true,
+    "result": {
+      "status": "Completed",
+      "files": [
+        {
+          "type": "vtt",
+          "filename": "chinese_test_small.vtt",
+          "path": "results/c6b09e21-17a7-4b6b-ba97-3b9aa1977655/chinese_test_small.vtt"
+        }
+      ],
+      "original_filename": "chinese_test_small.wav",
+      "file_id": "c6b09e21-17a7-4b6b-ba97-3b9aa1977655",
+      "full_text": "",
+      "transcription_params": {
+        "model": "small",
+        "language": "zh",
+        "output_format": "vtt",
+        "task_type": "transcribe"
+      },
+      "timing": {
+        "total_time": 0.13964414596557617,
+        "total_time_formatted": "0:00:00",
+        "ffmpeg_time": 0,
+        "transcription_time": 0.13525080680847168,
+        "subtitle_generation_time": 0.0003483295440673828,
+        "start_time": "2025-06-19T21:23:26.928456",
+        "end_time": "2025-06-19T21:23:27.068101"
+      }
+    }
+  }
+]

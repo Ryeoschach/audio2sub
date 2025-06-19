@@ -1,13 +1,14 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import axios from 'axios';
+import { audio2subAPI } from '../services/api';
 
 interface TranscriptionTask {
   taskId: string;
   fileId: string;
   filename: string;
+  model: string;
   status: string;
   progressMessage?: string;
-  result?: any; // Define more specific type based on actual API response
+  result?: any;
   error?: string;
 }
 
@@ -22,28 +23,41 @@ const TranscriptionStatus: React.FC<TranscriptionStatusProps> = ({ tasks, onTask
 
   const pollStatus = useCallback(async (task: TranscriptionTask) => {
     try {
-      const response = await axios.get(`/api/status/${task.taskId}`);
-      const updatedTask = { ...task, status: response.data.state, progressMessage: response.data.status, result: response.data.result, error: response.data.state === 'FAILURE' ? response.data.status : undefined };
+      const response = await audio2subAPI.getTaskStatus(task.taskId);
+      
+      let progressMessage = '';
+      if (response.state === 'PROGRESS' && response.result && typeof response.result === 'object' && 'status' in response.result) {
+        progressMessage = response.result.status;
+      } else if (response.status) {
+        progressMessage = response.status;
+      }
+
+      const updatedTask = { 
+        ...task, 
+        status: response.state, 
+        progressMessage,
+        result: response.result, 
+        error: response.state === 'FAILURE' ? (response.status || '转录失败') : undefined 
+      };
       
       setInternalTasks(prevTasks => 
         prevTasks.map(t => t.taskId === task.taskId ? updatedTask : t)
       );
 
-      if (response.data.state === 'SUCCESS' || response.data.state === 'FAILURE') {
+      if (response.state === 'SUCCESS' || response.state === 'FAILURE') {
         onTaskCompletion(updatedTask);
-        if(response.data.state === 'SUCCESS') {
-            setNotification(`Transcription for '${task.filename}' completed.`, 'success');
+        if(response.state === 'SUCCESS') {
+          setNotification(`文件 '${task.filename}' 转录完成`, 'success');
         } else {
-            setNotification(`Transcription for '${task.filename}' failed: ${response.data.status}`, 'error');
+          setNotification(`文件 '${task.filename}' 转录失败: ${response.status || '未知错误'}`, 'error');
         }
       }
     } catch (error) {
       console.error(`Error fetching status for task ${task.taskId}:`, error);
-      const errorMsg = axios.isAxiosError(error) && error.response ? error.response.data.detail : 'Failed to fetch status';
+      const errorMsg = error instanceof Error ? error.message : '状态查询失败';
       setInternalTasks(prevTasks => 
         prevTasks.map(t => t.taskId === task.taskId ? { ...t, error: errorMsg } : t)
       );
-      // Optionally, notify user about polling error for a specific task
     }
   }, [onTaskCompletion, setNotification]);
 

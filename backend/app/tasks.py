@@ -31,19 +31,36 @@ RESULTS_DIR = Path(settings.RESULTS_DIR)
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 RESULTS_DIR.mkdir(parents=True, exist_ok=True)
 
-def transcribe_with_whisper(audio_file_path: str) -> Dict[str, Any]:
+def transcribe_with_whisper(audio_file_path: str, model_name: str = None, language: str = None, task_type: str = None) -> Dict[str, Any]:
     """
     Use OpenAI Whisper for transcription with optimized settings
+    
+    Args:
+        audio_file_path: 音频文件路径
+        model_name: 模型名称 (覆盖默认配置)
+        language: 语言代码 (覆盖默认配置)
+        task_type: 任务类型 (覆盖默认配置)
     """
     start_time = time.time()
     
+    # 使用传入的参数或默认配置
+    final_model_name = model_name or settings.MODEL_NAME
+    final_language = language or settings.WHISPER_LANGUAGE
+    final_task_type = task_type or settings.WHISPER_TASK
+    
     try:
         logger.info(f"Starting transcription with OpenAI Whisper for {audio_file_path}")
+        logger.info(f"Model: {final_model_name}, Language: {final_language}, Task: {final_task_type}")
         logger.info(f"Transcription started at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
         
-        # Get whisper manager and perform transcription
+        # Get whisper manager and perform transcription with dynamic parameters
         whisper_manager = get_whisper_manager()
-        result = whisper_manager.transcribe(audio_file_path)
+        result = whisper_manager.transcribe(
+            audio_file_path, 
+            model_name=final_model_name,
+            language=final_language,
+            task_type=final_task_type
+        )
         
         end_time = time.time()
         total_duration = end_time - start_time
@@ -192,15 +209,34 @@ def safe_update_state(self, state, meta=None):
         logger.warning(f"Could not update state: {e}")
 
 @celery_app.task(bind=True, name="app.tasks.create_transcription_task")
-def create_transcription_task(self, input_filepath_str: str, file_id: str, original_filename: str):
+def create_transcription_task(self, input_filepath_str: str, file_id: str, original_filename: str, transcription_params: dict = None):
     """
     Process audio/video file and generate transcription with OpenAI Whisper
+    
+    Args:
+        input_filepath_str: 输入文件路径
+        file_id: 文件ID
+        original_filename: 原始文件名
+        transcription_params: 转录参数 {model, language, output_format, task}
     """
     # Record overall start time
     overall_start_time = time.time()
     start_datetime = datetime.now()
     
+    # 处理转录参数，设置默认值
+    if transcription_params is None:
+        transcription_params = {}
+    
+    model_name = transcription_params.get("model", settings.MODEL_NAME)
+    language = transcription_params.get("language", settings.WHISPER_LANGUAGE)
+    output_format = transcription_params.get("output_format", "both")
+    task_type = transcription_params.get("task", settings.WHISPER_TASK)
+    
     logger.info(f"📁 Starting transcription task for file: {original_filename}")
+    logger.info(f"🤖 Using model: {model_name}")
+    logger.info(f"🌐 Language: {language}")
+    logger.info(f"📄 Output format: {output_format}")
+    logger.info(f"🎯 Task type: {task_type}")
     logger.info(f"🕐 Task started at: {start_datetime.strftime('%Y-%m-%d %H:%M:%S')}")
     logger.info(f"🆔 File ID: {file_id}")
     
@@ -270,41 +306,72 @@ def create_transcription_task(self, input_filepath_str: str, file_id: str, origi
             )
             return
         
-        safe_update_state(self, state='PROGRESS', meta={'status': 'Starting transcription...', 'progress': 30})
+        safe_update_state(self, state='PROGRESS', meta={'status': f'Starting transcription with {model_name} model...', 'progress': 30})
         
         # Use OpenAI Whisper for transcription
-        logger.info(f"🎙️ Starting transcription with OpenAI Whisper model: {settings.MODEL_NAME}")
-        transcription_data = transcribe_with_whisper(str(audio_file_to_transcribe))
+        logger.info(f"🎙️ Starting transcription with model: {model_name}")
+        transcription_data = transcribe_with_whisper(
+            str(audio_file_to_transcribe),
+            model_name=model_name,
+            language=language,
+            task_type=task_type
+        )
         transcription_time = transcription_data.get("total_processing_time", 0)
         
         logger.info(f"✅ Transcription completed")
         safe_update_state(self, state='PROGRESS', meta={'status': 'Generating subtitles...', 'progress': 80})
         
-        # Generate subtitle files
+        # Generate subtitle files based on requested format
         subtitle_start = time.time()
-        srt_filename = f"{Path(original_filename).stem}.srt"
-        srt_path = output_dir / srt_filename
-        vtt_filename = f"{Path(original_filename).stem}.vtt"
-        vtt_path = output_dir / vtt_filename
+        generated_files = []
         
         # Extract segments from transcription data
         segments = transcription_data.get("segments", [])
-        if not segments:
-            # Fallback: create a single segment with full text
-            full_text = transcription_data.get("text", "").strip()
-            if full_text:
-                segments = [{
-                    "text": full_text,
-                    "start": 0.0,
-                    "end": 30.0  # Assume 30 seconds for full text
-                }]
         
-        generate_subtitles_from_segments(segments, srt_path, vtt_path)
+        if output_format in ["srt", "both"]:
+            srt_filename = f"{Path(original_filename).stem}.srt"
+            srt_path = output_dir / srt_filename
+            generated_files.append({"type": "srt", "filename": srt_filename, "path": str(srt_path)})
+            logger.info(f"📄 Will generate SRT file: {srt_path}")
+        
+        if output_format in ["vtt", "both"]:
+            vtt_filename = f"{Path(original_filename).stem}.vtt"
+            vtt_path = output_dir / vtt_filename
+            generated_files.append({"type": "vtt", "filename": vtt_filename, "path": str(vtt_path)})
+            logger.info(f"📄 Will generate VTT file: {vtt_path}")
+        
+        # Generate the subtitle files using existing function
+        if generated_files:
+            # 确保 segments 不为空
+            if not segments:
+                # Fallback: create a single segment with full text
+                full_text = transcription_data.get("text", "").strip()
+                if full_text:
+                    segments = [{
+                        "text": full_text,
+                        "start": 0.0,
+                        "end": 30.0  # Assume 30 seconds for full text
+                    }]
+            
+            if len(generated_files) == 2:  # both formats
+                generate_subtitles_from_segments(segments, 
+                    Path(generated_files[0]["path"]) if generated_files[0]["type"] == "srt" else Path(generated_files[1]["path"]),
+                    Path(generated_files[1]["path"]) if generated_files[1]["type"] == "vtt" else Path(generated_files[0]["path"]))
+            elif generated_files[0]["type"] == "srt":
+                # Only SRT
+                temp_vtt = output_dir / "temp.vtt"
+                generate_subtitles_from_segments(segments, Path(generated_files[0]["path"]), temp_vtt)
+                temp_vtt.unlink()  # Remove temp VTT file
+            else:
+                # Only VTT  
+                temp_srt = output_dir / "temp.srt"
+                generate_subtitles_from_segments(segments, temp_srt, Path(generated_files[0]["path"]))
+                temp_srt.unlink()  # Remove temp SRT file
         subtitle_generation_time = time.time() - subtitle_start
         
         logger.info(f"✅ Subtitle generation completed in {subtitle_generation_time:.2f} seconds")
-        logger.info(f"📄 SRT saved to: {srt_path}")
-        logger.info(f"📄 VTT saved to: {vtt_path}")
+        for file_info in generated_files:
+            logger.info(f"📄 {file_info['type'].upper()} saved to: {file_info['path']}")
         
         # Calculate total time and log summary
         total_time = time.time() - overall_start_time
@@ -319,11 +386,17 @@ def create_transcription_task(self, input_filepath_str: str, file_id: str, origi
         
         return {
             "status": "Completed",
-            "srt_path": str(srt_filename),
-            "vtt_path": str(vtt_filename),
+            "files": generated_files,  # 动态生成的文件列表
             "original_filename": original_filename,
             "file_id": file_id,
             "full_text": transcription_data.get("text", ""),
+            # 模型和参数信息
+            "transcription_params": {
+                "model": model_name,
+                "language": language,
+                "output_format": output_format,
+                "task_type": task_type
+            },
             # Timing information
             "timing": {
                 "total_time": total_time,

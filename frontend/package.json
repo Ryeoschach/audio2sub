@@ -1,13 +1,37 @@
 {
-  "name": "frontend",
+  "name": "audio2sub-frontend",
+  "description": "Audio2Sub - 音频/视频转字幕前端应用",
+  "version": "1.0.0",
   "private": true,
-  "version": "0.0.0",
   "type": "module",
+  "author": "Audio2Sub Development Team",
+  "license": "MIT",
+  "homepage": "https://github.com/audio2sub/audio2sub",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/audio2sub/audio2sub.git",
+    "directory": "frontend"
+  },
+  "keywords": [
+    "audio",
+    "video", 
+    "subtitle",
+    "transcription",
+    "whisper",
+    "react",
+    "typescript"
+  ],
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --host 0.0.0.0 --port 5173",
     "build": "tsc && vite build",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
-    "preview": "vite preview"
+    "lint:fix": "eslint . --ext ts,tsx --fix",
+    "preview": "vite preview --host 0.0.0.0 --port 4173",
+    "type-check": "tsc --noEmit",
+    "format": "prettier --write \"src/**/*.{ts,tsx,css,md}\"",
+    "test": "echo 'Tests not implemented yet' && exit 0",
+    "test:coverage": "echo 'Coverage not implemented yet' && exit 0",
+    "test:e2e": "echo 'E2E tests not implemented yet' && exit 0"
   },
   "dependencies": {
     "react": "^18.2.0",

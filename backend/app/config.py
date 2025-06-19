@@ -6,6 +6,7 @@ import multiprocessing
 import subprocess
 import shutil
 import logging
+import logging
 
 # 全局logger
 logger = logging.getLogger(__name__)
@@ -15,21 +16,37 @@ class Settings(BaseSettings):
     DEBUG: bool = True
 
     # Default to local Redis settings
-    REDIS_HOST: str = "127.0.0.1"
+    REDIS_HOST: str = "localhost"
     REDIS_PORT: int = 6379  # 使用Redis默认端口
     REDIS_PASSWORD: str | None = None  # 使用密码
     REDIS_DB: int = 0
 
-    # Default Celery broker and result backend to local Redis with password
-    CELERY_BROKER_URL: Optional[str] = None
-    CELERY_RESULT_BACKEND: Optional[str] = None
+    # Default Celery broker and result backend to local Redis
+    CELERY_BROKER_URL: str = "redis://localhost:6379/0"
+    CELERY_RESULT_BACKEND: str = "redis://localhost:6379/0"
 
     # Whisper.cpp executable path
-    WHISPER_CPP_PATH: str = "/usr/local/bin/whisper-cli"
+    WHISPER_CPP_PATH: str = "/Users/creed/.audio2sub/whisper.cpp/build/bin/whisper-cli"
     
     # Whisper.cpp model configuration
     MODEL_PATH: str = "models/ggml-base.bin"  # Path to whisper.cpp model file
-    MODEL_NAME: str = "base"  # Model size: tiny, base, small, medium, large-v1, large-v2, large-v3
+    MODEL_NAME: str = "base"  # Default model size: tiny, base, small, medium, large-v1, large-v2, large-v3, large-v3-turbo
+    
+    # 支持的模型列表和描述
+    SUPPORTED_MODELS: Dict[str, Dict[str, str]] = {
+        "tiny": {"size": "39 MB", "speed": "~32x", "accuracy": "较低", "use_case": "快速测试"},
+        "tiny.en": {"size": "39 MB", "speed": "~32x", "accuracy": "较低", "use_case": "英文快速转录"},
+        "base": {"size": "142 MB", "speed": "~16x", "accuracy": "良好", "use_case": "日常使用推荐"},
+        "base.en": {"size": "142 MB", "speed": "~16x", "accuracy": "良好", "use_case": "英文日常使用"},
+        "small": {"size": "466 MB", "speed": "~6x", "accuracy": "较高", "use_case": "高质量转录"},
+        "small.en": {"size": "466 MB", "speed": "~6x", "accuracy": "较高", "use_case": "英文高质量"},
+        "medium": {"size": "1.5 GB", "speed": "~2x", "accuracy": "高", "use_case": "专业转录"},
+        "medium.en": {"size": "1.5 GB", "speed": "~2x", "accuracy": "高", "use_case": "英文专业转录"},
+        "large-v1": {"size": "2.9 GB", "speed": "~1x", "accuracy": "最高", "use_case": "最高质量"},
+        "large-v2": {"size": "2.9 GB", "speed": "~1x", "accuracy": "最高", "use_case": "最高质量v2"},
+        "large-v3": {"size": "2.9 GB", "speed": "~1x", "accuracy": "最高", "use_case": "最新最高质量"},
+        "large-v3-turbo": {"size": "809 MB", "speed": "~8x", "accuracy": "很高", "use_case": "快速高质量"}
+    }
     
     # Processing device configuration
     # whisper.cpp supports: "cpu", "cuda", "metal" (for Apple Silicon)
