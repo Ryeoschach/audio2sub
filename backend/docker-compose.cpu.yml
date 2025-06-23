@@ -1,0 +1,106 @@
+# Docker Compose for Audio2Sub with multiple device support
+# Usage:
+#   For CPU: docker-compose -f docker-compose.cpu.yml up
+#   For GPU: docker-compose -f docker-compose.gpu.yml up  
+#   For MPS: docker-compose -f docker-compose.mps.yml up
+
+version: '3.8'
+
+services:
+  # Redis service (shared across all configurations)
+  redis:
+    image: redis:7-alpine
+    container_name: audio2sub_redis_cpu
+    ports:
+      - "6379:6379"
+    command: redis-server --requirepass redispassword
+    volumes:
+      - redis_data_cpu:/data
+    networks:
+      - audio2sub_network_cpu
+    restart: unless-stopped
+
+  # Backend service (CPU version)
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.cpu
+    container_name: audio2sub_backend_cpu
+    ports:
+      - "8000:8000"
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=redispassword
+      - WHISPER_DEVICE=cpu
+      - WHISPER_THREADS=0
+      - MODEL_NAME=base
+      - DEBUG=true
+      - DEPLOYMENT_MODE=docker
+    volumes:
+      - ./uploads:/app/uploads
+      - ./results:/app/results
+      # 注释掉模型挂载，使用容器内的模型
+      # - ./models:/app/models
+    depends_on:
+      - redis
+    networks:
+      - audio2sub_network_cpu
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Celery worker (CPU version)
+  celery-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.cpu
+    container_name: audio2sub_worker_cpu
+    command: celery -A celery_app worker --loglevel=info --pool=solo
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=redispassword
+      - WHISPER_DEVICE=cpu
+      - WHISPER_THREADS=0
+      - MODEL_NAME=base
+      - DEBUG=false
+    volumes:
+      - ./uploads:/app/uploads
+      - ./results:/app/results
+      - ./models:/app/models
+    depends_on:
+      - redis
+    networks:
+      - audio2sub_network_cpu
+    restart: unless-stopped
+
+  # Optional: Celery monitoring with Flower
+  flower:
+    build:
+      context: .
+      dockerfile: Dockerfile.cpu
+    container_name: audio2sub_flower_cpu
+    command: celery -A celery_app flower --port=5555
+    ports:
+      - "5555:5555"
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=redispassword
+    depends_on:
+      - redis
+    networks:
+      - audio2sub_network_cpu
+    restart: unless-stopped
+
+volumes:
+  redis_data_cpu:
+    driver: local
+
+networks:
+  audio2sub_network_cpu:
+    driver: bridge

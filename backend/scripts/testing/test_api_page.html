@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audio2Sub API 测试页面</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 10px;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .section {
+            background: white;
+            padding: 25px;
+            margin-bottom: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .models-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .model-card {
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 15px;
+            transition: all 0.3s ease;
+        }
+        
+        .model-card:hover {
+            border-color: #667eea;
+            transform: translateY(-2px);
+        }
+        
+        .model-card.selected {
+            border-color: #667eea;
+            background-color: #f8f9ff;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        input, select, button {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .log-container {
+            background: #1e1e1e;
+            color: #00ff00;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            height: 400px;
+            overflow-y: auto;
+            margin-top: 15px;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        .status-healthy { background-color: #4CAF50; }
+        .status-error { background-color: #F44336; }
+        .status-warning { background-color: #FF9800; }
+        
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background-color: #f0f0f0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        
+        .result-card {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+            background-color: #fafafa;
+        }
+        
+        .flex-container {
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+        }
+        
+        .flex-item {
+            flex: 1;
+        }
+        
+        @media (max-width: 768px) {
+            .flex-container {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🎯 Audio2Sub API 测试平台</h1>
+        <p>测试动态模型选择功能</p>
+    </div>
+
+    <!-- API 状态检查 -->
+    <div class="section">
+        <h2>🔍 API 状态检查</h2>
+        <div style="display: flex; align-items: center; margin-bottom: 15px;">
+            <span class="status-indicator" id="statusIndicator"></span>
+            <span id="statusText">检查中...</span>
+        </div>
+        <button onclick="checkAPIHealth()">重新检查</button>
+    </div>
+
+    <!-- 可用模型 -->
+    <div class="section">
+        <h2>📋 可用模型</h2>
+        <button onclick="loadModels()">加载模型列表</button>
+        <div id="modelsContainer" class="models-grid"></div>
+    </div>
+
+    <!-- 文件上传和测试 -->
+    <div class="section">
+        <h2>🚀 文件上传测试</h2>
+        <div class="flex-container">
+            <div class="flex-item">
+                <div class="form-group">
+                    <label for="fileInput">选择文件:</label>
+                    <input type="file" id="fileInput" accept="audio/*,video/*,.txt">
+                </div>
+                
+                <div class="form-group">
+                    <label for="modelSelect">模型:</label>
+                    <select id="modelSelect">
+                        <option value="tiny">tiny - 最快速度</option>
+                        <option value="base" selected>base - 平衡推荐</option>
+                        <option value="small">small - 高质量</option>
+                        <option value="medium">medium - 专业级</option>
+                        <option value="large-v3">large-v3 - 最高质量</option>
+                        <option value="large-v3-turbo">large-v3-turbo - 快速高质量</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="languageSelect">语言:</label>
+                    <select id="languageSelect">
+                        <option value="auto">自动检测</option>
+                        <option value="zh">中文</option>
+                        <option value="en">英文</option>
+                        <option value="ja">日文</option>
+                        <option value="ko">韩文</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="formatSelect">输出格式:</label>
+                    <select id="formatSelect">
+                        <option value="both">SRT + VTT</option>
+                        <option value="srt">仅 SRT</option>
+                        <option value="vtt">仅 VTT</option>
+                    </select>
+                </div>
+                
+                <button onclick="uploadFile()" id="uploadBtn">开始转录</button>
+            </div>
+            
+            <div class="flex-item">
+                <h3>📊 任务状态</h3>
+                <div id="taskStatus">暂无任务</div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <div id="taskResults"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 批量测试 -->
+    <div class="section">
+        <h2>🔬 批量模型测试</h2>
+        <p>自动测试多个模型配置，比较性能和结果</p>
+        <button onclick="runBatchTests()" id="batchTestBtn">运行批量测试</button>
+        <div id="batchResults"></div>
+    </div>
+
+    <!-- 日志输出 -->
+    <div class="section">
+        <h2>📝 日志输出</h2>
+        <button onclick="clearLogs()" style="width: auto; margin-bottom: 10px;">清空日志</button>
+        <div id="logContainer" class="log-container"></div>
+    </div>
+
+    <script src="test_api_frontend.js"></script>
+    <script>
+        let api = new Audio2SubAPI();
+        let currentTaskId = null;
+        let currentModel = null;
+
+        // 日志函数
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logContainer = document.getElementById('logContainer');
+            const color = {
+                'info': '#00ff00',
+                'error': '#ff4444',
+                'warning': '#ffaa00',
+                'success': '#44ff44'
+            }[type] || '#00ff00';
+            
+            logContainer.innerHTML += `<div style="color: ${color}">[${timestamp}] ${message}</div>`;
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+
+        function clearLogs() {
+            document.getElementById('logContainer').innerHTML = '';
+        }
+
+        // API 健康检查
+        async function checkAPIHealth() {
+            const indicator = document.getElementById('statusIndicator');
+            const statusText = document.getElementById('statusText');
+            
+            try {
+                statusText.textContent = '检查中...';
+                indicator.className = 'status-indicator status-warning';
+                
+                const isHealthy = await api.healthCheck();
+                
+                if (isHealthy) {
+                    indicator.className = 'status-indicator status-healthy';
+                    statusText.textContent = 'API 服务正常';
+                    log('✅ API 健康检查通过', 'success');
+                } else {
+                    indicator.className = 'status-indicator status-error';
+                    statusText.textContent = 'API 服务异常';
+                    log('❌ API 健康检查失败', 'error');
+                }
+            } catch (error) {
+                indicator.className = 'status-indicator status-error';
+                statusText.textContent = 'API 连接失败';
+                log(`❌ API 连接错误: ${error.message}`, 'error');
+            }
+        }
+
+        // 加载模型列表
+        async function loadModels() {
+            try {
+                log('📋 正在加载模型列表...');
+                const modelsData = await api.getModels();
+                const container = document.getElementById('modelsContainer');
+                
+                container.innerHTML = '';
+                
+                modelsData.models.forEach(model => {
+                    const card = document.createElement('div');
+                    card.className = 'model-card';
+                    card.innerHTML = `
+                        <h4>${model.name}</h4>
+                        <p><strong>大小:</strong> ${model.size}</p>
+                        <p><strong>速度:</strong> ${model.speed}</p>
+                        <p><strong>准确度:</strong> ${model.accuracy}</p>
+                        <p><strong>适用场景:</strong> ${model.use_case}</p>
+                    `;
+                    
+                    card.onclick = () => {
+                        document.querySelectorAll('.model-card').forEach(c => c.classList.remove('selected'));
+                        card.classList.add('selected');
+                        document.getElementById('modelSelect').value = model.name;
+                        log(`📌 选择模型: ${model.name}`, 'info');
+                    };
+                    
+                    container.appendChild(card);
+                });
+                
+                log(`✅ 加载了 ${modelsData.models.length} 个模型`, 'success');
+                
+            } catch (error) {
+                log(`❌ 加载模型失败: ${error.message}`, 'error');
+            }
+        }
+
+        // 上传文件
+        async function uploadFile() {
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                log('❌ 请选择文件', 'error');
+                return;
+            }
+            
+            const model = document.getElementById('modelSelect').value;
+            const language = document.getElementById('languageSelect').value;
+            const format = document.getElementById('formatSelect').value;
+            
+            const uploadBtn = document.getElementById('uploadBtn');
+            uploadBtn.disabled = true;
+            uploadBtn.textContent = '上传中...';
+            
+            try {
+                log(`🚀 开始上传文件: ${file.name}`, 'info');
+                log(`📝 参数: 模型=${model}, 语言=${language}, 格式=${format}`, 'info');
+                
+                const result = await api.uploadFile(file, {
+                    model: model,
+                    language: language,
+                    output_format: format,
+                    task: 'transcribe'
+                });
+                
+                currentTaskId = result.task_id;
+                currentModel = model;
+                
+                log(`✅ 上传成功! 任务ID: ${currentTaskId}`, 'success');
+                
+                updateTaskStatus('任务已创建', 0);
+                
+                // 开始监控任务
+                monitorTask(currentTaskId);
+                
+            } catch (error) {
+                log(`❌ 上传失败: ${error.message}`, 'error');
+                updateTaskStatus('上传失败', 0);
+            } finally {
+                uploadBtn.disabled = false;
+                uploadBtn.textContent = '开始转录';
+            }
+        }
+
+        // 监控任务状态
+        async function monitorTask(taskId) {
+            try {
+                const result = await api.waitForCompletion(
+                    taskId,
+                    300000, // 5分钟超时
+                    (status) => {
+                        if (status.state === 'PROGRESS') {
+                            const progressInfo = status.result?.status || '处理中...';
+                            updateTaskStatus(progressInfo, Math.random() * 100); // 模拟进度
+                            log(`🔄 ${currentModel}: ${progressInfo}`, 'info');
+                        }
+                    }
+                );
+                
+                updateTaskStatus('任务完成!', 100);
+                displayResults(result);
+                log(`✅ 任务 ${taskId} 完成`, 'success');
+                
+            } catch (error) {
+                updateTaskStatus(`任务失败: ${error.message}`, 0);
+                log(`❌ 任务 ${taskId} 失败: ${error.message}`, 'error');
+            }
+        }
+
+        // 更新任务状态
+        function updateTaskStatus(status, progress) {
+            document.getElementById('taskStatus').textContent = status;
+            document.getElementById('progressFill').style.width = `${progress}%`;
+        }
+
+        // 显示结果
+        function displayResults(result) {
+            const container = document.getElementById('taskResults');
+            
+            let html = '<div class="result-card">';
+            html += '<h4>📊 转录结果</h4>';
+            
+            if (result.timing) {
+                html += `<p><strong>处理时间:</strong> ${result.timing.total_time}s</p>`;
+                html += `<p><strong>转录时间:</strong> ${result.timing.transcription_time}s</p>`;
+            }
+            
+            if (result.transcription_params) {
+                const params = result.transcription_params;
+                html += `<p><strong>使用模型:</strong> ${params.model}</p>`;
+                html += `<p><strong>语言:</strong> ${params.language}</p>`;
+            }
+            
+            if (result.files && result.files.length > 0) {
+                html += '<p><strong>生成文件:</strong></p><ul>';
+                result.files.forEach(file => {
+                    html += `<li>${file.filename} (${file.type})</li>`;
+                });
+                html += '</ul>';
+            }
+            
+            if (result.full_text) {
+                const preview = result.full_text.length > 200 
+                    ? result.full_text.substring(0, 200) + '...'
+                    : result.full_text;
+                html += `<p><strong>转录内容:</strong></p><div style="background:#f5f5f5;padding:10px;border-radius:5px;font-family:monospace;">${preview}</div>`;
+            }
+            
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        // 批量测试
+        async function runBatchTests() {
+            const btn = document.getElementById('batchTestBtn');
+            btn.disabled = true;
+            btn.textContent = '测试中...';
+            
+            const container = document.getElementById('batchResults');
+            container.innerHTML = '<p>🔬 正在运行批量测试...</p>';
+            
+            try {
+                const tester = new APITester(api);
+                
+                // 创建测试文件
+                const testContent = 'Hello, this is a test for batch model comparison.';
+                const testFile = new File([testContent], 'batch_test.txt', { type: 'text/plain' });
+                
+                log('🔬 开始批量模型测试', 'info');
+                
+                const testConfigs = [
+                    { model: 'tiny', description: '最快速度', language: 'auto', output_format: 'srt' },
+                    { model: 'base', description: '平衡推荐', language: 'zh', output_format: 'vtt' },
+                    { model: 'small', description: '高质量', language: 'auto', output_format: 'both' }
+                ];
+                
+                const results = [];
+                
+                for (let i = 0; i < testConfigs.length; i++) {
+                    const config = testConfigs[i];
+                    log(`🧪 测试模型 ${i + 1}/${testConfigs.length}: ${config.model}`, 'info');
+                    
+                    const result = await tester.testModel(testFile, config);
+                    results.push(result);
+                }
+                
+                // 显示批量测试结果
+                displayBatchResults(results);
+                log('✅ 批量测试完成', 'success');
+                
+            } catch (error) {
+                container.innerHTML = `<p style="color: red;">❌ 批量测试失败: ${error.message}</p>`;
+                log(`❌ 批量测试失败: ${error.message}`, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '运行批量测试';
+            }
+        }
+
+        // 显示批量测试结果
+        function displayBatchResults(results) {
+            const container = document.getElementById('batchResults');
+            
+            let html = '<h3>📊 批量测试结果</h3>';
+            
+            const successCount = results.filter(r => r.success).length;
+            html += `<p>成功: ${successCount}/${results.length}</p>`;
+            
+            results.forEach(result => {
+                html += '<div class="result-card">';
+                html += `<h4>🔹 ${result.model.toUpperCase()}</h4>`;
+                
+                if (result.success) {
+                    html += '<p style="color: green;">✅ 测试成功</p>';
+                    
+                    if (result.result?.timing) {
+                        html += `<p>处理时间: ${result.result.timing.total_time}s</p>`;
+                    }
+                    
+                    if (result.result?.files) {
+                        html += `<p>生成文件: ${result.result.files.length} 个</p>`;
+                    }
+                } else {
+                    html += '<p style="color: red;">❌ 测试失败</p>';
+                    html += `<p>错误: ${result.error}</p>`;
+                }
+                
+                html += '</div>';
+            });
+            
+            container.innerHTML = html;
+        }
+
+        // 页面加载时初始化
+        window.addEventListener('DOMContentLoaded', () => {
+            log('🌐 Audio2Sub API 测试页面已加载', 'success');
+            checkAPIHealth();
+        });
+    </script>
+</body>
+</html>
