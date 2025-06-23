@@ -75,30 +75,109 @@ const TranscriptionStatus: React.FC<TranscriptionStatusProps> = ({ tasks, onTask
 
   if (internalTasks.length === 0) {
     return (
-      <div className="bg-slate-700 p-6 rounded-lg shadow-md text-center">
-        <p className="text-slate-300">No active transcription tasks.</p>
+      <div className="glass-effect p-6 rounded-xl shadow-xl border border-white/20 text-center">
+        <div className="flex flex-col items-center space-y-3">
+          <div className="text-4xl">😴</div>
+          <p className="text-white/80">暂无转录任务</p>
+          <p className="text-white/60 text-sm">上传文件开始转录吧！</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="bg-slate-700 p-6 rounded-lg shadow-md">
-      <h2 className="text-2xl font-semibold mb-6 text-teal-300">Transcription Progress</h2>
+    <div className="glass-effect p-6 rounded-xl shadow-xl border border-white/20">
+      <h2 className="text-2xl font-semibold mb-6 text-blue-300 flex items-center gap-2">
+        ⚡ 转录进度监控
+      </h2>
       <div className="space-y-4">
-        {internalTasks.map((task) => (
-          <div key={task.taskId} className="p-4 bg-slate-600 rounded-md shadow">
-            <h3 className="text-lg font-medium text-slate-100 truncate" title={task.filename}>{task.filename}</h3>
-            <p className={`text-sm ${task.status === 'SUCCESS' ? 'text-green-400' : task.status === 'FAILURE' ? 'text-red-400' : 'text-yellow-400'}`}>
-              Status: {task.progressMessage || task.status}
-            </p>
-            {task.status === 'PROGRESS' && (
-                <div className="w-full bg-slate-500 rounded-full h-2.5 mt-2">
-                    <div className="bg-blue-500 h-2.5 rounded-full animate-pulse" style={{ width: '50%' }}></div> {/* Basic indeterminate progress */}
+        {internalTasks.map((task) => {
+          const getStatusConfig = (status: string) => {
+            switch (status) {
+              case 'SUCCESS':
+                return { 
+                  icon: '✅', 
+                  color: 'from-green-400 to-emerald-400',
+                  bgColor: 'from-green-500/20 to-emerald-500/20',
+                  borderColor: 'border-green-400/30'
+                };
+              case 'FAILURE':
+                return { 
+                  icon: '❌', 
+                  color: 'from-red-400 to-pink-400',
+                  bgColor: 'from-red-500/20 to-pink-500/20',
+                  borderColor: 'border-red-400/30'
+                };
+              case 'PROGRESS':
+                return { 
+                  icon: '🔄', 
+                  color: 'from-blue-400 to-cyan-400',
+                  bgColor: 'from-blue-500/20 to-cyan-500/20',
+                  borderColor: 'border-blue-400/30'
+                };
+              case 'PENDING':
+                return { 
+                  icon: '⏳', 
+                  color: 'from-yellow-400 to-orange-400',
+                  bgColor: 'from-yellow-500/20 to-orange-500/20',
+                  borderColor: 'border-yellow-400/30'
+                };
+              default:
+                return { 
+                  icon: '🔄', 
+                  color: 'from-gray-400 to-slate-400',
+                  bgColor: 'from-gray-500/20 to-slate-500/20',
+                  borderColor: 'border-gray-400/30'
+                };
+            }
+          };
+
+          const statusConfig = getStatusConfig(task.status);
+
+          return (
+            <div key={task.taskId} className={`p-4 bg-gradient-to-r ${statusConfig.bgColor} rounded-xl shadow-lg border ${statusConfig.borderColor} backdrop-blur-sm hover:scale-105 transition-all duration-300`}>
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <h3 className="text-lg font-medium text-white/90 truncate mb-2 flex items-center gap-2" title={task.filename}>
+                    📄 {task.filename}
+                  </h3>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-xl">{statusConfig.icon}</span>
+                    <span className="text-blue-300 font-medium">
+                      状态: {task.progressMessage || task.status}
+                    </span>
+                  </div>
+                  <div className="text-sm text-white/70">
+                    <span className="bg-gray-600/50 px-2 py-1 rounded text-xs">
+                      🤖 模型: {task.model}
+                    </span>
+                  </div>
                 </div>
-            )}
-            {task.error && <p className="text-xs text-red-400 mt-1">Error: {task.error}</p>}
-          </div>
-        ))}
+              </div>
+              
+              {task.status === 'PROGRESS' && (
+                <div className="mt-3">
+                  <div className="w-full bg-gray-600/50 rounded-full h-3 overflow-hidden">
+                    <div className="bg-gradient-to-r from-blue-500 to-purple-500 h-3 rounded-full animate-pulse shadow-lg" style={{ width: '50%' }}>
+                      <div className="h-full bg-gradient-to-r from-white/20 to-transparent rounded-full"></div>
+                    </div>
+                  </div>
+                  <p className="text-xs text-white/60 mt-2 flex items-center gap-1">
+                    ⚡ 正在处理中...
+                  </p>
+                </div>
+              )}
+              
+              {task.error && (
+                <div className="mt-3 p-2 bg-red-500/20 rounded-lg border border-red-400/30">
+                  <p className="text-xs text-red-300 flex items-center gap-2">
+                    ⚠️ 错误: {task.error}
+                  </p>
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );

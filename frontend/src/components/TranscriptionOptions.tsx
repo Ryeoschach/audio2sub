@@ -49,75 +49,80 @@ const TranscriptionOptionsComponent: React.FC<TranscriptionOptionsProps> = ({
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-      {/* 语言选择 */}
-      <div>
-        <label className="block text-sm font-medium text-slate-300 mb-2">
-          语言
-        </label>
-        <select
-          value={options.language}
-          onChange={(e) => handleChange('language', e.target.value)}
-          disabled={disabled}
-          className="w-full px-3 py-2 bg-slate-600 border border-slate-500 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {languageOptions.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-        <p className="text-xs text-slate-400 mt-1">
-          {options.language === 'auto' ? '将自动检测音频语言' : '指定音频的语言'}
-        </p>
-      </div>
+    <div className="mb-6">
+      <h3 className="text-lg font-semibold mb-4 text-blue-300 flex items-center gap-2">
+        ⚙️ 转录设置
+      </h3>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* 语言选择 */}
+        <div className="space-y-3">
+          <label className="block text-sm font-medium text-white/90 flex items-center gap-2">
+            🌍 语言选择
+          </label>
+          <select
+            value={options.language}
+            onChange={(e) => handleChange('language', e.target.value)}
+            disabled={disabled}
+            className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-400/50 disabled:opacity-50 disabled:cursor-not-allowed backdrop-blur-sm transition-all duration-300 hover:bg-white/20"
+          >
+            {languageOptions.map((option) => (
+              <option key={option.value} value={option.value} className="bg-slate-800 text-white">
+                {option.label}
+              </option>
+            ))}
+          </select>
+          <p className="text-xs text-white/60 bg-white/10 p-2 rounded border border-white/20 flex items-center gap-1">
+            💡 {options.language === 'auto' ? '将自动检测音频语言' : '指定音频的语言'}
+          </p>
+        </div>
 
-      {/* 输出格式选择 */}
-      <div>
-        <label className="block text-sm font-medium text-slate-300 mb-2">
-          输出格式
-        </label>
-        <select
-          value={options.output_format}
-          onChange={(e) => handleChange('output_format', e.target.value)}
-          disabled={disabled}
-          className="w-full px-3 py-2 bg-slate-600 border border-slate-500 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {outputFormatOptions.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-        <p className="text-xs text-slate-400 mt-1">
-          {options.output_format === 'both' 
-            ? '生成两种格式的字幕文件' 
-            : `只生成 ${options.output_format.toUpperCase()} 格式`}
-        </p>
-      </div>
+        {/* 输出格式选择 */}
+        <div className="space-y-3">
+          <label className="block text-sm font-medium text-white/90 flex items-center gap-2">
+            📄 输出格式
+          </label>
+          <select
+            value={options.output_format}
+            onChange={(e) => handleChange('output_format', e.target.value)}
+            disabled={disabled}
+            className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-400/50 disabled:opacity-50 disabled:cursor-not-allowed backdrop-blur-sm transition-all duration-300 hover:bg-white/20"
+          >
+            {outputFormatOptions.map((option) => (
+              <option key={option.value} value={option.value} className="bg-slate-800 text-white">
+                {option.label}
+              </option>
+            ))}
+          </select>
+          <p className="text-xs text-white/60 bg-white/10 p-2 rounded border border-white/20 flex items-center gap-1">
+            📋 {options.output_format === 'both' 
+              ? '生成两种格式的字幕文件' 
+              : `只生成 ${options.output_format.toUpperCase()} 格式`}
+          </p>
+        </div>
 
-      {/* 任务类型选择 */}
-      <div>
-        <label className="block text-sm font-medium text-slate-300 mb-2">
-          任务类型
-        </label>
-        <select
-          value={options.task}
-          onChange={(e) => handleChange('task', e.target.value)}
-          disabled={disabled}
-          className="w-full px-3 py-2 bg-slate-600 border border-slate-500 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {taskOptions.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-        <p className="text-xs text-slate-400 mt-1">
-          {options.task === 'transcribe' 
-            ? '保持原语言进行转录' 
-            : '转录并翻译为英文'}
-        </p>
+        {/* 任务类型选择 */}
+        <div className="space-y-3">
+          <label className="block text-sm font-medium text-white/90 flex items-center gap-2">
+            🎯 任务类型
+          </label>
+          <select
+            value={options.task}
+            onChange={(e) => handleChange('task', e.target.value)}
+            disabled={disabled}
+            className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-green-500/50 focus:border-green-400/50 disabled:opacity-50 disabled:cursor-not-allowed backdrop-blur-sm transition-all duration-300 hover:bg-white/20"
+          >
+            {taskOptions.map((option) => (
+              <option key={option.value} value={option.value} className="bg-slate-800 text-white">
+                {option.label}
+              </option>
+            ))}
+          </select>
+          <p className="text-xs text-white/60 bg-white/10 p-2 rounded border border-white/20 flex items-center gap-1">
+            🔄 {options.task === 'transcribe' 
+              ? '保持原语言进行转录' 
+              : '转录并翻译为英文'}
+          </p>
+        </div>
       </div>
     </div>
   );

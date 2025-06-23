@@ -124,14 +124,14 @@ const BatchFileUpload: React.FC<BatchFileUploadProps> = ({
   const isDisabled = !apiHealthy || isUploading || models.length === 0;
 
   return (
-    <div className="bg-slate-700 p-6 rounded-lg shadow-md">
-      <h2 className="text-2xl font-semibold mb-6 text-teal-300">
-        批量上传音频/视频文件
+    <div className="glass-effect p-6 rounded-xl shadow-xl border border-white/20">
+      <h2 className="text-2xl font-semibold mb-6 text-purple-300 flex items-center gap-2">
+        📁 批量上传音频/视频文件
       </h2>
 
       {/* 文件选择 */}
       <div className="mb-6">
-        <label className="block text-sm font-medium text-slate-300 mb-2">
+        <label className="block text-sm font-medium text-gray-200 mb-2">
           选择多个文件 (最多50个)
         </label>
         <input
@@ -140,21 +140,23 @@ const BatchFileUpload: React.FC<BatchFileUploadProps> = ({
           accept="audio/*,video/*"
           multiple
           disabled={isDisabled}
-          className="w-full text-sm text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-teal-50 file:text-teal-700 hover:file:bg-teal-100 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full text-sm text-gray-200 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-gradient-to-r file:from-purple-500 file:to-pink-500 file:text-white hover:file:from-purple-600 hover:file:to-pink-600 file:transition-all file:duration-300 disabled:opacity-50 disabled:cursor-not-allowed bg-gray-700/50 rounded-lg p-3 border border-gray-600"
         />
         
         {/* 显示选中的文件列表 */}
         {selectedFiles.length > 0 && (
-          <div className="mt-4 p-4 bg-slate-600 rounded-lg">
-            <p className="text-sm text-slate-300 mb-2">已选择 {selectedFiles.length} 个文件:</p>
+          <div className="mt-4 p-4 bg-gray-700/50 rounded-lg border border-gray-600 backdrop-blur-sm">
+            <p className="text-sm text-gray-200 mb-2 flex items-center gap-2">
+              📄 已选择 {selectedFiles.length} 个文件:
+            </p>
             <div className="max-h-32 overflow-y-auto space-y-1">
               {selectedFiles.map((file, index) => (
-                <div key={index} className="flex justify-between items-center text-xs bg-slate-500 p-2 rounded">
-                  <span className="text-slate-200 truncate flex-1 mr-2">{file.name}</span>
-                  <span className="text-slate-400 mr-2">({(file.size / 1024 / 1024).toFixed(1)}MB)</span>
+                <div key={index} className="flex justify-between items-center text-xs bg-gray-600/50 p-2 rounded border border-gray-500 hover:bg-gray-600/70 transition-all duration-200">
+                  <span className="text-gray-200 truncate flex-1 mr-2">{file.name}</span>
+                  <span className="text-gray-300 mr-2">({(file.size / 1024 / 1024).toFixed(1)}MB)</span>
                   <button
                     onClick={() => removeFile(index)}
-                    className="text-red-400 hover:text-red-300 ml-2"
+                    className="text-red-400 hover:text-red-300 hover:bg-red-500/20 rounded p-1 ml-2 transition-all duration-200"
                     disabled={isUploading}
                   >
                     ✕
@@ -185,8 +187,8 @@ const BatchFileUpload: React.FC<BatchFileUploadProps> = ({
 
       {/* 并发限制设置 */}
       <div className="mb-4">
-        <label className="block text-sm font-medium text-slate-300 mb-2">
-          并发处理数量: {concurrentLimit}
+        <label className="block text-sm font-medium text-gray-200 mb-2 flex items-center gap-2">
+          ⚡ 并发处理数量: <span className="bg-gradient-to-r from-purple-500 to-pink-500 px-2 py-1 rounded text-white text-xs">{concurrentLimit}</span>
         </label>
         <input
           type="range"
@@ -195,9 +197,9 @@ const BatchFileUpload: React.FC<BatchFileUploadProps> = ({
           value={concurrentLimit}
           onChange={(e) => setConcurrentLimit(parseInt(e.target.value))}
           disabled={isDisabled}
-          className="w-full h-2 bg-slate-600 rounded-lg appearance-none cursor-pointer disabled:opacity-50"
+          className="w-full h-2 bg-gray-600/50 rounded-lg appearance-none cursor-pointer disabled:opacity-50 slider-gradient"
         />
-        <div className="flex justify-between text-xs text-slate-400 mt-1">
+        <div className="flex justify-between text-xs text-gray-300 mt-1">
           <span>1 (慢但稳定)</span>
           <span>10 (快但占用资源多)</span>
         </div>
@@ -205,17 +207,17 @@ const BatchFileUpload: React.FC<BatchFileUploadProps> = ({
 
       {/* 预计处理时间 */}
       {selectedModel && selectedFiles.length > 0 && (
-        <div className="mb-4 p-3 bg-slate-600 rounded">
+        <div className="mb-4 p-4 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-lg border border-gray-600 backdrop-blur-sm">
           <div className="flex items-center justify-between text-sm">
-            <span className="text-slate-300">预计总处理时间:</span>
-            <span className="text-teal-300 font-medium">{getEstimatedTime(selectedModel, selectedFiles.length)}</span>
+            <span className="text-gray-200 flex items-center gap-2">⏱️ 预计总处理时间:</span>
+            <span className="text-yellow-300 font-bold">{getEstimatedTime(selectedModel, selectedFiles.length)}</span>
           </div>
           <div className="flex items-center justify-between text-sm mt-1">
-            <span className="text-slate-400">并发数量:</span>
-            <span className="text-slate-400">{concurrentLimit} 个文件同时处理</span>
+            <span className="text-gray-300">⚡ 并发数量:</span>
+            <span className="text-gray-300">{concurrentLimit} 个文件同时处理</span>
           </div>
-          <p className="text-xs text-slate-400 mt-2">
-            实际时间可能因文件大小和内容复杂度而异
+          <p className="text-xs text-gray-400 mt-2 italic">
+            💡 实际时间可能因文件大小和内容复杂度而异
           </p>
         </div>
       )}
@@ -224,27 +226,38 @@ const BatchFileUpload: React.FC<BatchFileUploadProps> = ({
       <button
         onClick={handleBatchUpload}
         disabled={!selectedFiles.length || isDisabled}
-        className="w-full bg-gradient-to-r from-blue-500 to-teal-500 hover:from-blue-600 hover:to-teal-600 text-white font-bold py-3 px-4 rounded-lg focus:outline-none focus:shadow-outline transition duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full btn-gradient-primary py-4 px-6 rounded-xl font-bold text-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 hover:shadow-lg"
       >
         {isUploading ? (
           <div className="flex items-center justify-center space-x-2">
-            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-            <span>批量上传中...</span>
+            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+            <span>🚀 批量上传中...</span>
           </div>
         ) : !apiHealthy ? (
-          'API 服务不可用'
+          '❌ API 服务不可用'
         ) : !selectedFiles.length ? (
-          '请选择文件'
+          '📁 请选择文件'
         ) : (
-          `批量转录 ${selectedFiles.length} 个文件`
+          `🎯 批量转录 ${selectedFiles.length} 个文件`
         )}
       </button>
 
       {/* 帮助信息 */}
-      <div className="mt-4 text-xs text-slate-400">
-        <p>支持的格式: MP3, WAV, MP4, AVI, MOV 等音频和视频文件</p>
-        <p>建议单个文件大小不超过 500MB，时长不超过 2 小时</p>
-        <p>批量处理会按设定的并发数量同时处理多个文件，提高整体效率</p>
+      <div className="mt-6 p-4 bg-gray-700/50 rounded-lg border border-gray-600 backdrop-blur-sm">
+        <h4 className="text-sm font-medium text-gray-200 mb-2 flex items-center gap-2">
+          💡 使用说明
+        </h4>
+        <div className="space-y-1 text-xs text-gray-300">
+          <p className="flex items-center gap-2">
+            📋 <span>支持的格式: MP3, WAV, MP4, AVI, MOV 等音频和视频文件</span>
+          </p>
+          <p className="flex items-center gap-2">
+            📏 <span>建议单个文件大小不超过 500MB，时长不超过 2 小时</span>
+          </p>
+          <p className="flex items-center gap-2">
+            ⚡ <span>批量处理会按设定的并发数量同时处理多个文件，提高整体效率</span>
+          </p>
+        </div>
       </div>
     </div>
   );

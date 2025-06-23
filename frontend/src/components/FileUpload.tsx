@@ -112,39 +112,78 @@ const FileUpload: React.FC<FileUploadProps> = ({
   const isDisabled = !apiHealthy || isUploading || models.length === 0;
 
   return (
-    <div className="bg-slate-700 p-6 rounded-lg shadow-md">
-      <h2 className="text-2xl font-semibold mb-6 text-teal-300">
-        上传音频/视频文件
-      </h2>
+    <div className="bg-gray-800 p-8 rounded-2xl shadow-xl border border-gray-700">
+      <div className="flex items-center mb-6">
+        <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center mr-4">
+          <span className="text-white text-xl">📁</span>
+        </div>
+        <h2 className="text-2xl font-bold text-white">
+          上传音频/视频文件
+        </h2>
+      </div>
 
-      {/* 文件选择 */}
+      {/* 文件拖拽上传区域 */}
       <div className="mb-6">
-        <label className="block text-sm font-medium text-slate-300 mb-2">
+        <label className="block text-sm font-medium text-gray-300 mb-3">
           选择文件
         </label>
-        <input
-          type="file"
-          onChange={handleFileChange}
-          accept="audio/*,video/*"
-          disabled={isDisabled}
-          className="block w-full text-sm text-slate-300 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-teal-500 file:text-white hover:file:bg-teal-600 disabled:opacity-50 disabled:cursor-not-allowed"
-        />
-        {selectedFile && (
-          <div className="mt-2 p-3 bg-slate-600 rounded flex items-center justify-between">
-            <div>
-              <p className="text-sm text-slate-300 font-medium">{selectedFile.name}</p>
-              <p className="text-xs text-slate-400">
-                大小: {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
-              </p>
-            </div>
-            <button
-              onClick={() => setSelectedFile(null)}
-              className="text-red-400 hover:text-red-300 text-sm"
-            >
-              移除
-            </button>
+        <div className="relative">
+          <input
+            type="file"
+            onChange={handleFileChange}
+            accept="audio/*,video/*"
+            disabled={isDisabled}
+            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
+          />
+          <div className={`
+            border-2 border-dashed rounded-xl p-8 text-center transition-all duration-300
+            ${selectedFile 
+              ? 'border-green-400 bg-green-900/30' 
+              : 'border-gray-500 bg-gray-700/50 hover:border-blue-400 hover:bg-blue-900/30'
+            }
+            ${isDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+          `}>
+            {selectedFile ? (
+              <div className="flex items-center justify-center space-x-4">
+                <div className="flex-shrink-0">
+                  <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center">
+                    <span className="text-white text-xl">✓</span>
+                  </div>
+                </div>
+                <div className="flex-1 text-left">
+                  <p className="font-medium text-white">{selectedFile.name}</p>
+                  <p className="text-sm text-gray-300">
+                    大小: {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                  </p>
+                </div>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedFile(null);
+                  }}
+                  className="text-red-400 hover:text-red-300 p-2 rounded-full hover:bg-red-900/30 transition-colors"
+                >
+                  ✕
+                </button>
+              </div>
+            ) : (
+              <div>
+                <div className="text-4xl mb-3">📁</div>
+                <p className="text-lg font-medium text-white mb-2">
+                  点击选择文件或拖拽文件到此处
+                </p>
+                <p className="text-sm text-gray-400">
+                  支持音频和视频文件格式
+                </p>
+                <div className="mt-4">
+                  <div className="inline-flex px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg font-medium hover:from-blue-600 hover:to-purple-700 transition-all duration-300 shadow-lg">
+                    📁 选择文件
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </div>
 
       {/* 模型选择 */}
@@ -166,14 +205,17 @@ const FileUpload: React.FC<FileUploadProps> = ({
 
       {/* 预计处理时间 */}
       {selectedModel && (
-        <div className="mb-4 p-3 bg-slate-600 rounded">
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-slate-300">预计处理时间:</span>
-            <span className="text-teal-300 font-medium">{getEstimatedTime(selectedModel)}</span>
+        <div className="mb-6 p-4 bg-gradient-to-r from-blue-900/30 to-purple-900/30 rounded-xl border border-blue-500/30">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <span className="text-2xl mr-3">⏱️</span>
+              <div>
+                <p className="text-sm font-medium text-white">预计处理时间</p>
+                <p className="text-xs text-gray-400">实际时间可能因文件大小和内容复杂度而异</p>
+              </div>
+            </div>
+            <span className="text-lg font-bold text-blue-400">{getEstimatedTime(selectedModel)}</span>
           </div>
-          <p className="text-xs text-slate-400 mt-1">
-            实际时间可能因文件大小和内容复杂度而异
-          </p>
         </div>
       )}
 
@@ -181,26 +223,33 @@ const FileUpload: React.FC<FileUploadProps> = ({
       <button
         onClick={handleUpload}
         disabled={!selectedFile || isDisabled}
-        className="w-full bg-gradient-to-r from-blue-500 to-teal-500 hover:from-blue-600 hover:to-teal-600 text-white font-bold py-3 px-4 rounded-lg focus:outline-none focus:shadow-outline transition duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full btn-gradient-primary py-4 px-6 rounded-xl font-bold text-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-800"
       >
         {isUploading ? (
           <div className="flex items-center justify-center space-x-2">
-            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-            <span>上传中...</span>
+            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+            <span>🚀 上传中...</span>
           </div>
         ) : !apiHealthy ? (
-          'API 服务不可用'
+          '❌ API 服务不可用'
         ) : !selectedFile ? (
-          '请选择文件'
+          '📁 请选择文件'
         ) : (
-          `使用 ${selectedModel} 模型开始转录`
+          `🎯 使用 ${selectedModel} 模型开始转录`
         )}
       </button>
 
       {/* 帮助信息 */}
-      <div className="mt-4 text-xs text-slate-400">
-        <p>支持的格式: MP3, WAV, MP4, AVI, MOV 等音频和视频文件</p>
-        <p>建议文件大小不超过 500MB，时长不超过 2 小时</p>
+      <div className="mt-6 p-4 bg-gray-700/50 rounded-lg border border-gray-600">
+        <div className="flex items-start">
+          <span className="text-lg mr-2">💡</span>
+          <div className="text-xs text-gray-300">
+            <p className="font-medium mb-1 text-white">支持格式:</p>
+            <p className="mb-2">MP3, WAV, FLAC, MP4, AVI, MOV 等音频和视频文件</p>
+            <p className="font-medium mb-1 text-white">建议规范:</p>
+            <p>文件大小不超过 500MB，时长不超过 2 小时</p>
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -2,6 +2,19 @@
 @tailwind components;
 @tailwind utilities;
 
+/* 清晰简洁的CSS变量 */
+:root {
+  --primary-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  --success-gradient: linear-gradient(135deg, #10b981 0%, #06d6a0 100%);
+  --warning-gradient: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);
+  --danger-gradient: linear-gradient(135deg, #ef4444 0%, #f97316 100%);
+  
+  /* 简化的阴影和模糊效果 */
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.15);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.15);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.15);
+}
+
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
@@ -9,11 +22,246 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #f0f2f5; /* A light grey background for a modern feel */
-  color: #333;
+  background: #111827; /* bg-gray-900 */
+  min-height: 100vh;
+  color: #f3f4f6; /* text-gray-100 */
+}
+
+/* 深色玻璃态效果 */
+.glass-effect {
+  background: rgba(31, 41, 55, 0.9) !important; /* bg-gray-800 with opacity */
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(75, 85, 99, 0.5); /* border-gray-600 */
+  box-shadow: var(--shadow-md);
+}
+
+/* 增强文字可读性 */
+.text-enhanced {
+  color: #1f2937 !important;
+  font-weight: 600 !important;
+  text-shadow: none !important;
+}
+
+/* 深色主题文字颜色 */
+.text-white {
+  color: #f9fafb !important; /* text-gray-50 */
+  font-weight: 600 !important;
+  text-shadow: none !important;
+}
+
+.text-white\/90 {
+  color: #f3f4f6 !important; /* text-gray-100 */
+  font-weight: 600 !important;
+  text-shadow: none !important;
+}
+
+.text-white\/80 {
+  color: #e5e7eb !important; /* text-gray-200 */
+  font-weight: 500 !important;
+  text-shadow: none !important;
+}
+
+.text-white\/70 {
+  color: #d1d5db !important; /* text-gray-300 */
+  font-weight: 500 !important;
+  text-shadow: none !important;
+}
+
+.text-white\/60 {
+  color: #9ca3af !important; /* text-gray-400 */
+  font-weight: 500 !important;
+  text-shadow: none !important;
+}
+
+/* 清晰的按钮样式 */
+.btn-gradient-primary {
+  background: var(--primary-gradient);
+  color: white !important;
+  font-weight: 600 !important;
+  transition: all 0.2s ease;
+  box-shadow: var(--shadow-sm);
+  text-shadow: none !important;
+}
+
+.btn-gradient-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+/* 深色背景样式 */
+.bg-white\/10 {
+  background: rgba(55, 65, 81, 0.5) !important; /* bg-gray-700 with opacity */
+}
+
+.bg-white\/20 {
+  background: rgba(75, 85, 99, 0.7) !important; /* bg-gray-600 with opacity */
+}
+
+/* 深色边框 */
+.border-white\/20 {
+  border-color: rgba(75, 85, 99, 0.5) !important; /* border-gray-600 */
+}
+
+.border-white\/30 {
+  border-color: rgba(107, 114, 128, 0.6) !important; /* border-gray-500 */
+}
+
+/* 深色输入框样式 */
+input, select, textarea {
+  background: rgba(31, 41, 55, 0.8) !important; /* bg-gray-800 */
+  color: #f3f4f6 !important; /* text-gray-100 */
+  border: 1px solid rgba(75, 85, 99, 0.5) !important; /* border-gray-600 */
+  font-weight: 500 !important;
+}
+
+input:focus, select:focus, textarea:focus {
+  border-color: #6366f1 !important;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2) !important;
+}
+
+input::placeholder {
+  color: #9ca3af !important; /* text-gray-400 */
+  font-weight: 400 !important;
+}
+
+/* 渐变文字改为普通颜色 */
+.bg-gradient-to-r {
+  background: none !important;
+  background-clip: unset !important;
+  -webkit-background-clip: unset !important;
+  color: #6366f1 !important;
+  font-weight: 700 !important;
+  text-shadow: none !important;
+}
+
+/* 特定颜色文字 */
+.text-purple-300, .text-purple-400 {
+  color: #6366f1 !important;
+  font-weight: 600 !important;
+  text-shadow: none !important;
+}
+
+.text-blue-300, .text-blue-400 {
+  color: #3b82f6 !important;
+  font-weight: 600 !important;
+  text-shadow: none !important;
+}
+
+.text-green-300, .text-green-400 {
+  color: #10b981 !important;
+  font-weight: 600 !important;
+  text-shadow: none !important;
+}
+
+.text-orange-300, .text-orange-400 {
+  color: #f59e0b !important;
+  font-weight: 600 !important;
+  text-shadow: none !important;
+}
+
+.text-yellow-400 {
+  color: #eab308 !important;
+  font-weight: 600 !important;
+  text-shadow: none !important;
+}
+
+.text-red-300, .text-red-400 {
+  color: #ef4444 !important;
+  font-weight: 600 !important;
+  text-shadow: none !important;
+}
+
+/* 清除所有文字阴影 */
+* {
+  text-shadow: none !important;
+}
+
+/* 深色主题标签和按钮样式 */
+label, button {
+  font-weight: 600 !important;
+  color: #f3f4f6 !important; /* text-gray-100 */
+  text-shadow: none !important;
+}
+
+/* 清晰的滑块样式 */
+.slider-gradient {
+  background: #e5e7eb;
+  border-radius: 4px;
+}
+
+.slider-gradient::-webkit-slider-thumb {
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--primary-gradient);
+  cursor: pointer;
+  border: 2px solid white;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.2s ease;
+}
+
+.slider-gradient::-webkit-slider-thumb:hover {
+  transform: scale(1.1);
+  box-shadow: var(--shadow-md);
+}
+
+.slider-gradient::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--primary-gradient);
+  cursor: pointer;
+  border: 2px solid white;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.2s ease;
+}
+
+/* 深色卡片样式 */
+.card-modern {
+  background: rgba(31, 41, 55, 0.9); /* bg-gray-800 */
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: 16px;
+  box-shadow: var(--shadow-md);
+  border: 1px solid rgba(75, 85, 99, 0.5); /* border-gray-600 */
+}
+
+/* 清晰的滚动条 */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--primary-gradient);
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, #4f46e5, #7c3aed);
+}
+
+/* 深色主题通知样式 */
+.notification {
+  background: rgba(31, 41, 55, 0.95) !important; /* bg-gray-800 */
+  color: #f3f4f6 !important; /* text-gray-100 */
+  backdrop-filter: blur(20px) !important;
+  border: 1px solid rgba(75, 85, 99, 0.5) !important; /* border-gray-600 */
+  box-shadow: var(--shadow-md) !important;
+  text-shadow: none !important;
 }
 
 code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
+  background: rgba(0, 0, 0, 0.05);
+  padding: 2px 4px;
+  border-radius: 4px;
+  font-size: 0.875em;
 }
