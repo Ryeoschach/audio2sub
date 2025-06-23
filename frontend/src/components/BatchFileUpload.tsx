@@ -131,7 +131,7 @@ const BatchFileUpload: React.FC<BatchFileUploadProps> = ({
 
       {/* 文件选择 */}
       <div className="mb-6">
-        <label className="block text-sm font-medium text-gray-200 mb-2">
+        <label className="block text-sm font-medium text-theme-primary mb-2">
           选择多个文件 (最多50个)
         </label>
         <input
@@ -140,20 +140,20 @@ const BatchFileUpload: React.FC<BatchFileUploadProps> = ({
           accept="audio/*,video/*"
           multiple
           disabled={isDisabled}
-          className="w-full text-sm text-gray-200 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-gradient-to-r file:from-purple-500 file:to-pink-500 file:text-white hover:file:from-purple-600 hover:file:to-pink-600 file:transition-all file:duration-300 disabled:opacity-50 disabled:cursor-not-allowed bg-gray-700/50 rounded-lg p-3 border border-gray-600"
+          className="w-full text-sm text-theme-primary file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-gradient-to-r file:from-purple-500 file:to-pink-500 file:text-white hover:file:from-purple-600 hover:file:to-pink-600 file:transition-all file:duration-300 disabled:opacity-50 disabled:cursor-not-allowed bg-theme-card rounded-lg p-3 border border-theme-border"
         />
         
         {/* 显示选中的文件列表 */}
         {selectedFiles.length > 0 && (
-          <div className="mt-4 p-4 bg-gray-700/50 rounded-lg border border-gray-600 backdrop-blur-sm">
-            <p className="text-sm text-gray-200 mb-2 flex items-center gap-2">
+          <div className="mt-4 p-4 bg-theme-card rounded-lg border border-theme-border backdrop-blur-sm">
+            <p className="text-sm text-theme-primary mb-2 flex items-center gap-2">
               📄 已选择 {selectedFiles.length} 个文件:
             </p>
             <div className="max-h-32 overflow-y-auto space-y-1">
               {selectedFiles.map((file, index) => (
-                <div key={index} className="flex justify-between items-center text-xs bg-gray-600/50 p-2 rounded border border-gray-500 hover:bg-gray-600/70 transition-all duration-200">
-                  <span className="text-gray-200 truncate flex-1 mr-2">{file.name}</span>
-                  <span className="text-gray-300 mr-2">({(file.size / 1024 / 1024).toFixed(1)}MB)</span>
+                <div key={index} className="flex justify-between items-center text-xs bg-theme-card p-2 rounded border border-theme-border hover:bg-theme-hover transition-all duration-200">
+                  <span className="text-theme-primary truncate flex-1 mr-2">{file.name}</span>
+                  <span className="text-theme-secondary mr-2">({(file.size / 1024 / 1024).toFixed(1)}MB)</span>
                   <button
                     onClick={() => removeFile(index)}
                     className="text-red-400 hover:text-red-300 hover:bg-red-500/20 rounded p-1 ml-2 transition-all duration-200"
@@ -187,7 +187,7 @@ const BatchFileUpload: React.FC<BatchFileUploadProps> = ({
 
       {/* 并发限制设置 */}
       <div className="mb-4">
-        <label className="block text-sm font-medium text-gray-200 mb-2 flex items-center gap-2">
+        <label className="block text-sm font-medium text-theme-primary mb-2 flex items-center gap-2">
           ⚡ 并发处理数量: <span className="bg-gradient-to-r from-purple-500 to-pink-500 px-2 py-1 rounded text-white text-xs">{concurrentLimit}</span>
         </label>
         <input
@@ -197,9 +197,9 @@ const BatchFileUpload: React.FC<BatchFileUploadProps> = ({
           value={concurrentLimit}
           onChange={(e) => setConcurrentLimit(parseInt(e.target.value))}
           disabled={isDisabled}
-          className="w-full h-2 bg-gray-600/50 rounded-lg appearance-none cursor-pointer disabled:opacity-50 slider-gradient"
+          className="w-full h-2 bg-theme-card rounded-lg appearance-none cursor-pointer disabled:opacity-50 slider-gradient"
         />
-        <div className="flex justify-between text-xs text-gray-300 mt-1">
+        <div className="flex justify-between text-xs text-theme-secondary mt-1">
           <span>1 (慢但稳定)</span>
           <span>10 (快但占用资源多)</span>
         </div>
@@ -207,16 +207,16 @@ const BatchFileUpload: React.FC<BatchFileUploadProps> = ({
 
       {/* 预计处理时间 */}
       {selectedModel && selectedFiles.length > 0 && (
-        <div className="mb-4 p-4 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-lg border border-gray-600 backdrop-blur-sm">
+        <div className="mb-4 p-4 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-lg border border-theme-border backdrop-blur-sm">
           <div className="flex items-center justify-between text-sm">
-            <span className="text-gray-200 flex items-center gap-2">⏱️ 预计总处理时间:</span>
+            <span className="text-theme-primary flex items-center gap-2">⏱️ 预计总处理时间:</span>
             <span className="text-yellow-300 font-bold">{getEstimatedTime(selectedModel, selectedFiles.length)}</span>
           </div>
           <div className="flex items-center justify-between text-sm mt-1">
-            <span className="text-gray-300">⚡ 并发数量:</span>
-            <span className="text-gray-300">{concurrentLimit} 个文件同时处理</span>
+            <span className="text-theme-secondary">⚡ 并发数量:</span>
+            <span className="text-theme-secondary">{concurrentLimit} 个文件同时处理</span>
           </div>
-          <p className="text-xs text-gray-400 mt-2 italic">
+          <p className="text-xs text-theme-secondary mt-2 italic">
             💡 实际时间可能因文件大小和内容复杂度而异
           </p>
         </div>
@@ -243,11 +243,11 @@ const BatchFileUpload: React.FC<BatchFileUploadProps> = ({
       </button>
 
       {/* 帮助信息 */}
-      <div className="mt-6 p-4 bg-gray-700/50 rounded-lg border border-gray-600 backdrop-blur-sm">
-        <h4 className="text-sm font-medium text-gray-200 mb-2 flex items-center gap-2">
+      <div className="mt-6 p-4 bg-theme-card rounded-lg border border-theme-border backdrop-blur-sm">
+        <h4 className="text-sm font-medium text-theme-primary mb-2 flex items-center gap-2">
           💡 使用说明
         </h4>
-        <div className="space-y-1 text-xs text-gray-300">
+        <div className="space-y-1 text-xs text-theme-secondary">
           <p className="flex items-center gap-2">
             📋 <span>支持的格式: MP3, WAV, MP4, AVI, MOV 等音频和视频文件</span>
           </p>

@@ -203,24 +203,24 @@ const BatchTranscriptionStatus: React.FC<BatchTranscriptionStatusProps> = ({
         </h4>
         <div className="max-h-80 overflow-y-auto space-y-3 pr-2">
           {batchStatus.tasks.map((task: BatchTaskInfo) => (
-            <div key={task.file_id} className="bg-gray-700/50 p-4 rounded-xl border border-gray-600 hover:bg-gray-600/50 transition-all duration-300">
+            <div key={task.file_id} className="bg-theme-card p-4 rounded-xl border border-theme-border hover:bg-theme-hover transition-all duration-300">
               <div className="flex justify-between items-center">
                 <div className="flex-1 mr-4">
                   <div className="flex items-center space-x-3 mb-2">
                     <span className="text-xl">{getStatusIcon(task.status)}</span>
-                    <span className="text-sm font-medium text-white/90 truncate">
+                    <span className="text-sm font-medium text-theme-primary truncate">
                       📄 {task.filename}
                     </span>
                   </div>
                   {task.status === 'PROGRESS' && (
                     <div className="mt-2">
-                      <div className="w-full bg-gray-600/50 rounded-full h-2 overflow-hidden">
+                      <div className="w-full bg-theme-card rounded-full h-2 overflow-hidden">
                         <div
                           className="bg-gradient-to-r from-yellow-400 to-orange-400 h-2 rounded-full transition-all duration-500"
                           style={{ width: `${task.progress}%` }}
                         />
                       </div>
-                      <p className="text-xs text-gray-300 mt-1 flex items-center gap-1">
+                      <p className="text-xs text-theme-secondary mt-1 flex items-center gap-1">
                         ⚡ 处理中... {task.progress}%
                       </p>
                     </div>
@@ -234,7 +234,7 @@ const BatchTranscriptionStatus: React.FC<BatchTranscriptionStatusProps> = ({
                   )}
                 </div>
                 <div className="text-right">
-                  <div className={`text-sm font-bold px-2 py-1 rounded ${getStatusColor(task.status)} bg-gray-600/50`}>
+                  <div className={`text-sm font-bold px-2 py-1 rounded ${getStatusColor(task.status)} bg-theme-card`}>
                     {task.status}
                   </div>
                 </div>
@@ -247,10 +247,10 @@ const BatchTranscriptionStatus: React.FC<BatchTranscriptionStatusProps> = ({
       {/* 时间信息 */}
       {batchStatus.start_time && (
         <div className="mb-6 p-4 bg-gradient-to-r from-gray-500/10 to-slate-500/10 rounded-xl border border-gray-400/20">
-          <h4 className="text-sm font-medium text-white/90 mb-2 flex items-center gap-2">
+          <h4 className="text-sm font-medium text-theme-primary mb-2 flex items-center gap-2">
             🕒 时间信息
           </h4>
-          <div className="space-y-1 text-xs text-white/70">
+          <div className="space-y-1 text-xs text-theme-secondary">
             <p className="flex items-center gap-2">
               🚀 <span>开始时间: {new Date(batchStatus.start_time).toLocaleString()}</span>
             </p>

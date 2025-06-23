@@ -112,19 +112,19 @@ const FileUpload: React.FC<FileUploadProps> = ({
   const isDisabled = !apiHealthy || isUploading || models.length === 0;
 
   return (
-    <div className="bg-gray-800 p-8 rounded-2xl shadow-xl border border-gray-700">
+    <div className="glass-effect p-8 rounded-2xl shadow-xl border border-white/20 dark:border-gray-700">
       <div className="flex items-center mb-6">
         <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center mr-4">
           <span className="text-white text-xl">📁</span>
         </div>
-        <h2 className="text-2xl font-bold text-white">
+        <h2 className="text-2xl font-bold text-theme-primary">
           上传音频/视频文件
         </h2>
       </div>
 
       {/* 文件拖拽上传区域 */}
       <div className="mb-6">
-        <label className="block text-sm font-medium text-gray-300 mb-3">
+        <label className="block text-sm font-medium text-theme-secondary mb-3">
           选择文件
         </label>
         <div className="relative">
@@ -138,8 +138,8 @@ const FileUpload: React.FC<FileUploadProps> = ({
           <div className={`
             border-2 border-dashed rounded-xl p-8 text-center transition-all duration-300
             ${selectedFile 
-              ? 'border-green-400 bg-green-900/30' 
-              : 'border-gray-500 bg-gray-700/50 hover:border-blue-400 hover:bg-blue-900/30'
+              ? 'border-green-400 bg-green-500/10 dark:bg-green-900/30' 
+              : 'border-gray-300 dark:border-gray-500 bg-theme-card hover:border-blue-400 hover:bg-blue-500/10 dark:hover:bg-blue-900/30'
             }
             ${isDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
           `}>
@@ -151,8 +151,8 @@ const FileUpload: React.FC<FileUploadProps> = ({
                   </div>
                 </div>
                 <div className="flex-1 text-left">
-                  <p className="font-medium text-white">{selectedFile.name}</p>
-                  <p className="text-sm text-gray-300">
+                  <p className="font-medium text-theme-primary">{selectedFile.name}</p>
+                  <p className="text-sm text-theme-secondary">
                     大小: {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
                   </p>
                 </div>
@@ -161,7 +161,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
                     e.stopPropagation();
                     setSelectedFile(null);
                   }}
-                  className="text-red-400 hover:text-red-300 p-2 rounded-full hover:bg-red-900/30 transition-colors"
+                  className="text-red-400 hover:text-red-300 p-2 rounded-full hover:bg-red-500/20 dark:hover:bg-red-900/30 transition-colors"
                 >
                   ✕
                 </button>
@@ -169,10 +169,10 @@ const FileUpload: React.FC<FileUploadProps> = ({
             ) : (
               <div>
                 <div className="text-4xl mb-3">📁</div>
-                <p className="text-lg font-medium text-white mb-2">
+                <p className="text-lg font-medium text-theme-primary mb-2">
                   点击选择文件或拖拽文件到此处
                 </p>
-                <p className="text-sm text-gray-400">
+                <p className="text-sm text-theme-secondary">
                   支持音频和视频文件格式
                 </p>
                 <div className="mt-4">
@@ -205,13 +205,13 @@ const FileUpload: React.FC<FileUploadProps> = ({
 
       {/* 预计处理时间 */}
       {selectedModel && (
-        <div className="mb-6 p-4 bg-gradient-to-r from-blue-900/30 to-purple-900/30 rounded-xl border border-blue-500/30">
+        <div className="mb-6 p-4 bg-gradient-to-r from-blue-500/10 to-purple-500/10 dark:from-blue-900/30 dark:to-purple-900/30 rounded-xl border border-blue-500/30">
           <div className="flex items-center justify-between">
             <div className="flex items-center">
               <span className="text-2xl mr-3">⏱️</span>
               <div>
-                <p className="text-sm font-medium text-white">预计处理时间</p>
-                <p className="text-xs text-gray-400">实际时间可能因文件大小和内容复杂度而异</p>
+                <p className="text-sm font-medium text-theme-primary">预计处理时间</p>
+                <p className="text-xs text-theme-secondary">实际时间可能因文件大小和内容复杂度而异</p>
               </div>
             </div>
             <span className="text-lg font-bold text-blue-400">{getEstimatedTime(selectedModel)}</span>
@@ -240,13 +240,13 @@ const FileUpload: React.FC<FileUploadProps> = ({
       </button>
 
       {/* 帮助信息 */}
-      <div className="mt-6 p-4 bg-gray-700/50 rounded-lg border border-gray-600">
+      <div className="mt-6 p-4 bg-theme-card rounded-lg border border-theme-border">
         <div className="flex items-start">
           <span className="text-lg mr-2">💡</span>
-          <div className="text-xs text-gray-300">
-            <p className="font-medium mb-1 text-white">支持格式:</p>
+          <div className="text-xs text-theme-secondary">
+            <p className="font-medium mb-1 text-theme-primary">支持格式:</p>
             <p className="mb-2">MP3, WAV, FLAC, MP4, AVI, MOV 等音频和视频文件</p>
-            <p className="font-medium mb-1 text-white">建议规范:</p>
+            <p className="font-medium mb-1 text-theme-primary">建议规范:</p>
             <p>文件大小不超过 500MB，时长不超过 2 小时</p>
           </div>
         </div>

@@ -72,7 +72,7 @@ const APIStatus: React.FC<APIStatusProps> = ({ onModelsLoaded, onHealthStatus })
           <div className={`w-4 h-4 rounded-full bg-gradient-to-r ${getStatusColor()} shadow-lg ${loading ? 'animate-pulse' : ''}`}></div>
           <div className="flex items-center gap-2">
             <span className="text-2xl">{getStatusIcon()}</span>
-            <span className="text-white/90 font-medium">{getStatusText()}</span>
+            <span className="text-theme-primary font-medium">{getStatusText()}</span>
           </div>
           {modelsData && (
             <span className="bg-gradient-to-r from-purple-500/20 to-pink-500/20 px-3 py-1 rounded-full border border-purple-400/30 text-purple-300 text-sm">
@@ -125,14 +125,14 @@ const APIStatus: React.FC<APIStatusProps> = ({ onModelsLoaded, onHealthStatus })
               <span className="text-lg">🚀</span>
               <span className="text-blue-300 font-medium">部署模式</span>
             </div>
-            <span className="text-white text-lg font-bold">{healthStatus.deployment?.mode || 'N/A'}</span>
+            <span className="text-theme-primary text-lg font-bold">{healthStatus.deployment?.mode || 'N/A'}</span>
           </div>
           <div className="bg-gradient-to-r from-purple-500/20 to-pink-500/20 p-3 rounded-lg border border-purple-400/30">
             <div className="flex items-center gap-2 mb-1">
               <span className="text-lg">🖥️</span>
               <span className="text-purple-300 font-medium">设备</span>
             </div>
-            <span className="text-white text-lg font-bold">{healthStatus.deployment?.device || 'N/A'}</span>
+            <span className="text-theme-primary text-lg font-bold">{healthStatus.deployment?.device || 'N/A'}</span>
           </div>
           <div className="bg-gradient-to-r from-green-500/20 to-emerald-500/20 p-3 rounded-lg border border-green-400/30">
             <div className="flex items-center gap-2 mb-1">

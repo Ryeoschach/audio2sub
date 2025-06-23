@@ -138,7 +138,7 @@ const TranscriptionStatus: React.FC<TranscriptionStatusProps> = ({ tasks, onTask
             <div key={task.taskId} className={`p-4 bg-gradient-to-r ${statusConfig.bgColor} rounded-xl shadow-lg border ${statusConfig.borderColor} backdrop-blur-sm hover:scale-105 transition-all duration-300`}>
               <div className="flex items-start justify-between">
                 <div className="flex-1">
-                  <h3 className="text-lg font-medium text-white/90 truncate mb-2 flex items-center gap-2" title={task.filename}>
+                  <h3 className="text-lg font-medium text-theme-primary truncate mb-2 flex items-center gap-2" title={task.filename}>
                     📄 {task.filename}
                   </h3>
                   <div className="flex items-center gap-2 mb-2">
@@ -147,8 +147,8 @@ const TranscriptionStatus: React.FC<TranscriptionStatusProps> = ({ tasks, onTask
                       状态: {task.progressMessage || task.status}
                     </span>
                   </div>
-                  <div className="text-sm text-white/70">
-                    <span className="bg-gray-600/50 px-2 py-1 rounded text-xs">
+                  <div className="text-sm text-theme-secondary">
+                    <span className="bg-theme-card px-2 py-1 rounded text-xs">
                       🤖 模型: {task.model}
                     </span>
                   </div>
@@ -157,12 +157,12 @@ const TranscriptionStatus: React.FC<TranscriptionStatusProps> = ({ tasks, onTask
               
               {task.status === 'PROGRESS' && (
                 <div className="mt-3">
-                  <div className="w-full bg-gray-600/50 rounded-full h-3 overflow-hidden">
+                  <div className="w-full bg-theme-card rounded-full h-3 overflow-hidden">
                     <div className="bg-gradient-to-r from-blue-500 to-purple-500 h-3 rounded-full animate-pulse shadow-lg" style={{ width: '50%' }}>
                       <div className="h-full bg-gradient-to-r from-white/20 to-transparent rounded-full"></div>
                     </div>
                   </div>
-                  <p className="text-xs text-white/60 mt-2 flex items-center gap-1">
+                  <p className="text-xs text-theme-secondary mt-2 flex items-center gap-1">
                     ⚡ 正在处理中...
                   </p>
                 </div>

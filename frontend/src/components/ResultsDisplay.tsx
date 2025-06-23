@@ -31,13 +31,13 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ completedTasksData }) =
 
   if (completedTasksData.length === 0) {
     return (
-      <div className="bg-gray-800 p-8 rounded-xl shadow-xl border border-gray-700 text-center">
+      <div className="glass-effect p-8 rounded-xl shadow-xl border border-white/20 text-center">
         <div className="flex flex-col items-center space-y-4">
           <div className="text-6xl">📊</div>
           <h3 className="text-xl font-semibold text-blue-300">
             暂无转录结果
           </h3>
-          <p className="text-gray-400">完成的任务将显示在这里</p>
+          <p className="text-theme-secondary">完成的任务将显示在这里</p>
         </div>
       </div>
     );
@@ -73,11 +73,11 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ completedTasksData }) =
         const vttFile = taskResult.files.find(f => f.type === 'vtt');
         
         return (
-          <div key={taskResult.file_id} className="bg-gray-800 border border-gray-700 p-6 rounded-xl shadow-xl hover:scale-105 transition-all duration-300">
+          <div key={taskResult.file_id} className="glass-effect border border-white/20 p-6 rounded-xl shadow-xl hover:scale-105 transition-all duration-300">
             {/* 文件信息头部 */}
             <div className="flex items-center justify-between mb-4">
               <div className="flex-1">
-                <h3 className="text-lg font-medium text-white truncate flex items-center gap-2" title={taskResult.original_filename}>
+                <h3 className="text-lg font-medium text-theme-primary truncate flex items-center gap-2" title={taskResult.original_filename}>
                   🎵 {taskResult.original_filename}
                 </h3>
                 <div className="flex flex-wrap gap-4 mt-3 text-sm">
@@ -97,7 +97,7 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ completedTasksData }) =
               </div>
               <button
                 onClick={() => toggleExpanded(taskResult.file_id)}
-                className="ml-4 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white border border-gray-600 rounded-lg transition-all duration-300 hover:scale-105"
+                className="ml-4 px-4 py-2 bg-theme-card hover:bg-theme-hover text-theme-primary border border-theme-border rounded-lg transition-all duration-300 hover:scale-105"
               >
                 {isExpanded ? '🔽 收起' : '🔍 详情'}
               </button>
@@ -124,7 +124,7 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ completedTasksData }) =
                 </button>
               )}
               {taskResult.files.length === 0 && (
-                <div className="text-white/80 text-sm py-3 px-4 bg-gray-700/80 rounded-xl border border-gray-600 flex items-center gap-2">
+                <div className="text-theme-secondary text-sm py-3 px-4 bg-theme-card rounded-xl border border-theme-border flex items-center gap-2">
                   ⚠️ 暂无可下载文件
                 </div>
               )}
@@ -132,45 +132,45 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ completedTasksData }) =
 
             {/* 展开的详细信息 */}
             {isExpanded && (
-              <div className="border-t border-gray-600 pt-6 space-y-6">
+              <div className="border-t border-theme-border pt-6 space-y-6">
                 {/* 转录参数 */}
-                <div className="bg-gray-700/50 p-4 rounded-xl border border-purple-500/30">
+                <div className="bg-theme-card p-4 rounded-xl border border-purple-500/30">
                   <h4 className="text-purple-300 font-medium mb-3 flex items-center gap-2">
                     ⚙️ 转录参数
                   </h4>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
-                    <div className="bg-gray-600/50 p-2 rounded border border-gray-500">
-                      <span className="text-gray-300 block">🤖 模型:</span>
-                      <span className="text-white font-medium">{taskResult.transcription_params.model}</span>
+                    <div className="bg-theme-card p-2 rounded border border-theme-border">
+                      <span className="text-theme-secondary block">🤖 模型:</span>
+                      <span className="text-theme-primary font-medium">{taskResult.transcription_params.model}</span>
                     </div>
-                    <div className="bg-gray-600/50 p-2 rounded border border-gray-500">
-                      <span className="text-gray-300 block">🌍 语言:</span>
-                      <span className="text-white font-medium">{taskResult.transcription_params.language}</span>
+                    <div className="bg-theme-card p-2 rounded border border-theme-border">
+                      <span className="text-theme-secondary block">🌍 语言:</span>
+                      <span className="text-theme-primary font-medium">{taskResult.transcription_params.language}</span>
                     </div>
-                    <div className="bg-gray-600/50 p-2 rounded border border-gray-500">
-                      <span className="text-gray-300 block">📋 格式:</span>
-                      <span className="text-white font-medium">{taskResult.transcription_params.output_format}</span>
+                    <div className="bg-theme-card p-2 rounded border border-theme-border">
+                      <span className="text-theme-secondary block">📋 格式:</span>
+                      <span className="text-theme-primary font-medium">{taskResult.transcription_params.output_format}</span>
                     </div>
-                    <div className="bg-gray-600/50 p-2 rounded border border-gray-500">
-                      <span className="text-gray-300 block">🔧 类型:</span>
-                      <span className="text-white font-medium">{taskResult.transcription_params.task_type}</span>
+                    <div className="bg-theme-card p-2 rounded border border-theme-border">
+                      <span className="text-theme-secondary block">🔧 类型:</span>
+                      <span className="text-theme-primary font-medium">{taskResult.transcription_params.task_type}</span>
                     </div>
                   </div>
                 </div>
 
                 {/* 处理时间 */}
-                <div className="bg-gray-700/50 p-4 rounded-xl border border-blue-500/30">
+                <div className="bg-theme-card p-4 rounded-xl border border-blue-500/30">
                   <h4 className="text-blue-300 font-medium mb-3 flex items-center gap-2">
                     ⏱️ 处理时间
                   </h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-                    <div className="bg-gray-600/50 p-3 rounded border border-gray-500">
-                      <span className="text-gray-300 block">🕐 总耗时:</span>
-                      <span className="text-white font-medium text-lg">{formatTime(taskResult.timing.total_time)}</span>
+                    <div className="bg-theme-card p-3 rounded border border-theme-border">
+                      <span className="text-theme-secondary block">🕐 总耗时:</span>
+                      <span className="text-theme-primary font-medium text-lg">{formatTime(taskResult.timing.total_time)}</span>
                     </div>
-                    <div className="bg-gray-600/50 p-3 rounded border border-gray-500">
-                      <span className="text-gray-300 block">⚡ 转录耗时:</span>
-                      <span className="text-white font-medium text-lg">{formatTime(taskResult.timing.transcription_time)}</span>
+                    <div className="bg-theme-card p-3 rounded border border-theme-border">
+                      <span className="text-theme-secondary block">⚡ 转录耗时:</span>
+                      <span className="text-theme-primary font-medium text-lg">{formatTime(taskResult.timing.transcription_time)}</span>
                     </div>
                   </div>
                 </div>
@@ -183,14 +183,14 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ completedTasksData }) =
                     </h4>
                     <div className="space-y-2">
                       {taskResult.files.map((file, index) => (
-                        <div key={index} className="flex items-center justify-between bg-white/10 p-3 rounded-lg border border-white/20 hover:bg-white/20 transition-all duration-200">
+                        <div key={index} className="flex items-center justify-between bg-theme-card p-3 rounded-lg border border-theme-border hover:bg-theme-hover transition-all duration-200">
                           <div className="flex items-center gap-3">
                             <span className="text-2xl">
                               {file.type === 'srt' ? '📄' : file.type === 'vtt' ? '📹' : '📋'}
                             </span>
                             <div>
-                              <span className="text-white text-sm font-medium block">{file.filename}</span>
-                              <span className="text-white/60 text-xs">{file.type.toUpperCase()} 格式</span>
+                              <span className="text-theme-primary text-sm font-medium block">{file.filename}</span>
+                              <span className="text-theme-secondary text-xs">{file.type.toUpperCase()} 格式</span>
                             </div>
                           </div>
                           <button
@@ -212,14 +212,14 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ completedTasksData }) =
                       📝 转录文本预览
                     </h4>
                     <div className="bg-black/30 p-4 rounded-lg border border-white/20 max-h-40 overflow-y-auto">
-                      <pre className="text-white/90 text-sm whitespace-pre-wrap leading-relaxed">
+                      <pre className="text-theme-primary text-sm whitespace-pre-wrap leading-relaxed">
                         {taskResult.full_text.length > 500 
                           ? taskResult.full_text.substring(0, 500) + '...' 
                           : taskResult.full_text}
                       </pre>
                     </div>
                     {taskResult.full_text.length > 500 && (
-                      <p className="text-white/60 text-xs mt-2 flex items-center gap-1">
+                      <p className="text-theme-secondary text-xs mt-2 flex items-center gap-1">
                         💡 显示前500字符，完整内容请下载字幕文件查看
                       </p>
                     )}
