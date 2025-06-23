@@ -1,9 +1,12 @@
 import { useState, useCallback } from 'react';
 import FileUpload from './components/FileUpload';
+import BatchFileUpload from './components/BatchFileUpload';
 import TranscriptionStatus from './components/TranscriptionStatus';
+import BatchTranscriptionStatus from './components/BatchTranscriptionStatus';
 import ResultsDisplay from './components/ResultsDisplay';
+import BatchResultsDisplay from './components/BatchResultsDisplay';
 import APIStatus from './components/APIStatus';
-import { ModelsResponse } from './services/api';
+import { ModelsResponse, BatchResultSummary } from './services/api';
 
 // Define types for tasks and results
 interface TranscriptionTask {
@@ -40,6 +43,13 @@ interface TaskResultData {
   };
 }
 
+// 批量任务相关类型
+interface BatchTask {
+  batchId: string;
+  totalFiles: number;
+  status: string;
+}
+
 interface Notification {
   message: string;
   type: 'success' | 'error' | '';
@@ -48,6 +58,12 @@ interface Notification {
 function App() {
   const [activeTasks, setActiveTasks] = useState<TranscriptionTask[]>([]);
   const [completedTaskResults, setCompletedTaskResults] = useState<TaskResultData[]>([]);
+  
+  // 批量处理状态
+  const [activeBatchTasks, setActiveBatchTasks] = useState<BatchTask[]>([]);
+  const [completedBatchResults, setCompletedBatchResults] = useState<BatchResultSummary[]>([]);
+  const [isBatchMode, setIsBatchMode] = useState(false);
+  
   const [notification, setNotification] = useState<Notification>({ message: '', type: '' });
   const [modelsData, setModelsData] = useState<ModelsResponse | null>(null);
   const [apiHealthy, setApiHealthy] = useState(false);
@@ -91,6 +107,26 @@ function App() {
     // Notification for completion/failure is handled within TranscriptionStatus component
   }, []);
 
+  // 批量处理相关的处理函数
+  const handleBatchUploadSuccess = useCallback((batchId: string, totalFiles: number) => {
+    setActiveBatchTasks(prevTasks => [
+      ...prevTasks,
+      { 
+        batchId, 
+        totalFiles,
+        status: 'PROCESSING'
+      },
+    ]);
+  }, []);
+
+  const handleBatchTaskCompletion = useCallback((batchId: string, results: BatchResultSummary) => {
+    setActiveBatchTasks(prevTasks => prevTasks.filter(task => task.batchId !== batchId));
+    setCompletedBatchResults(prevResults => [
+      results,
+      ...prevResults
+    ]);
+  }, []);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-700 text-white p-4 flex flex-col items-center font-sans">
       <header className="w-full max-w-6xl py-8">
@@ -123,39 +159,114 @@ function App() {
 
         {/* 主要内容区域 */}
         <div className="bg-slate-800 shadow-2xl rounded-lg p-6 md:p-10 mb-6">
-          {/* 文件上传区域 */}
+          {/* 模式切换 */}
           {modelsData && (
-            <FileUpload 
-              models={modelsData.models}
-              defaultModel={modelsData.default_model}
-              apiHealthy={apiHealthy}
-              onUploadSuccess={handleUploadSuccess} 
-              setNotification={handleSetNotification} 
-            />
-          )}
-
-          {/* 处理中的任务 */}
-          {activeTasks.length > 0 && (
-            <div className="mt-8">
-              <h3 className="text-xl font-semibold text-teal-300 mb-4">
-                处理中的任务 ({activeTasks.length})
-              </h3>
-              <TranscriptionStatus 
-                tasks={activeTasks} 
-                onTaskCompletion={handleTaskCompletion} 
-                setNotification={handleSetNotification} 
-              />
+            <div className="mb-6 flex justify-center">
+              <div className="bg-slate-700 p-1 rounded-lg flex">
+                <button
+                  onClick={() => setIsBatchMode(false)}
+                  className={`px-4 py-2 rounded-md font-medium transition-colors ${
+                    !isBatchMode 
+                      ? 'bg-teal-500 text-white' 
+                      : 'text-slate-300 hover:text-white'
+                  }`}
+                >
+                  📄 单文件模式
+                </button>
+                <button
+                  onClick={() => setIsBatchMode(true)}
+                  className={`px-4 py-2 rounded-md font-medium transition-colors ${
+                    isBatchMode 
+                      ? 'bg-teal-500 text-white' 
+                      : 'text-slate-300 hover:text-white'
+                  }`}
+                >
+                  📁 批量模式
+                </button>
+              </div>
             </div>
           )}
 
-          {/* 已完成的结果 */}
-          {completedTaskResults.length > 0 && (
-            <div className="mt-8">
-              <h3 className="text-xl font-semibold text-teal-300 mb-4">
-                转录结果 ({completedTaskResults.length})
-              </h3>
-              <ResultsDisplay completedTasksData={completedTaskResults} />
-            </div>
+          {/* 文件上传组件 */}
+          {modelsData && (
+            <>
+              {!isBatchMode ? (
+                <FileUpload
+                  models={modelsData.models}
+                  defaultModel={modelsData.default_model}
+                  apiHealthy={apiHealthy}
+                  onUploadSuccess={handleUploadSuccess}
+                  setNotification={handleSetNotification}
+                />
+              ) : (
+                <BatchFileUpload
+                  models={modelsData.models}
+                  defaultModel={modelsData.default_model}
+                  apiHealthy={apiHealthy}
+                  onBatchUploadSuccess={handleBatchUploadSuccess}
+                  setNotification={handleSetNotification}
+                />
+              )}
+            </>
+          )}
+
+          {/* 处理中的任务监控 */}
+          {!isBatchMode ? (
+            /* 单文件任务监控 */
+            activeTasks.length > 0 && (
+              <div className="mt-8">
+                <h3 className="text-xl font-semibold text-teal-300 mb-4">
+                  处理中的任务 ({activeTasks.length})
+                </h3>
+                <TranscriptionStatus 
+                  tasks={activeTasks} 
+                  onTaskCompletion={handleTaskCompletion} 
+                  setNotification={handleSetNotification} 
+                />
+              </div>
+            )
+          ) : (
+            /* 批量任务监控 */
+            activeBatchTasks.length > 0 && (
+              <div className="mt-8">
+                <h3 className="text-xl font-semibold text-teal-300 mb-4">
+                  批量任务监控 ({activeBatchTasks.length})
+                </h3>
+                <div className="space-y-4">
+                  {activeBatchTasks.map((batchTask) => (
+                    <BatchTranscriptionStatus
+                      key={batchTask.batchId}
+                      batchId={batchTask.batchId}
+                      onBatchComplete={handleBatchTaskCompletion}
+                      setNotification={handleSetNotification}
+                    />
+                  ))}
+                </div>
+              </div>
+            )
+          )}
+
+          {/* 转录结果展示 */}
+          {!isBatchMode ? (
+            /* 单文件结果 */
+            completedTaskResults.length > 0 && (
+              <div className="mt-8">
+                <h3 className="text-xl font-semibold text-teal-300 mb-4">
+                  转录结果 ({completedTaskResults.length})
+                </h3>
+                <ResultsDisplay completedTasksData={completedTaskResults} />
+              </div>
+            )
+          ) : (
+            /* 批量结果 */
+            completedBatchResults.length > 0 && (
+              <div className="mt-8">
+                <BatchResultsDisplay 
+                  batchResults={completedBatchResults}
+                  setNotification={handleSetNotification}
+                />
+              </div>
+            )
           )}
 
           {/* 空状态提示 */}
@@ -166,21 +277,32 @@ function App() {
             </div>
           )}
 
-          {apiHealthy && activeTasks.length === 0 && completedTaskResults.length === 0 && (
+          {apiHealthy && 
+           activeTasks.length === 0 && 
+           completedTaskResults.length === 0 &&
+           activeBatchTasks.length === 0 && 
+           completedBatchResults.length === 0 && (
             <div className="text-center py-12 text-slate-400">
               <p className="text-lg mb-2">🎵 准备开始转录</p>
-              <p>选择音频或视频文件，配置转录选项，然后开始处理</p>
+              <p>选择{isBatchMode ? '多个' : ''}音频或视频文件，配置转录选项，然后开始处理</p>
             </div>
           )}
         </div>
 
         {/* 功能特点说明 */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <div className="bg-slate-800 p-6 rounded-lg text-center">
             <div className="text-3xl mb-3">🚀</div>
             <h3 className="text-lg font-semibold text-teal-300 mb-2">多模型支持</h3>
             <p className="text-slate-400 text-sm">
               从快速的 tiny 模型到高精度的 large-v3-turbo，根据需求选择最合适的模型
+            </p>
+          </div>
+          <div className="bg-slate-800 p-6 rounded-lg text-center">
+            <div className="text-3xl mb-3">📁</div>
+            <h3 className="text-lg font-semibold text-teal-300 mb-2">批量处理</h3>
+            <p className="text-slate-400 text-sm">
+              支持同时上传多个文件进行批量转录，可配置并发数量，提高工作效率
             </p>
           </div>
           <div className="bg-slate-800 p-6 rounded-lg text-center">

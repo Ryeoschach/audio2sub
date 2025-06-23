@@ -10,6 +10,7 @@ import time
 from datetime import datetime, timedelta
 import requests
 from .whisper_manager import get_whisper_manager
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -436,3 +437,367 @@ def create_transcription_task(self, input_filepath_str: str, file_id: str, origi
                 logger.info(f"Cleaned up file: {file_path}")
             except Exception as cleanup_error:
                 logger.warning(f"Could not clean up {file_path}: {cleanup_error}")
+
+
+# 批量处理相关任务
+import redis
+from typing import Dict, List
+import uuid
+from datetime import datetime, timedelta
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
+# Redis连接用于批量任务状态管理
+redis_client = redis.Redis(
+    host=settings.REDIS_HOST,
+    port=settings.REDIS_PORT,
+    password=settings.REDIS_PASSWORD,
+    db=settings.REDIS_DB,
+    decode_responses=True
+)
+
+@celery_app.task(bind=True, name="app.tasks.create_batch_transcription_task")
+def create_batch_transcription_task(self, batch_info: dict):
+    """
+    批量处理音频/视频文件转录任务
+    
+    Args:
+        batch_info: 包含批量任务信息的字典
+            - batch_id: 批量任务ID
+            - file_infos: 文件信息列表
+            - transcription_params: 转录参数
+            - concurrent_limit: 并发限制
+    """
+    batch_id = batch_info['batch_id']
+    file_infos = batch_info['file_infos']
+    transcription_params = batch_info['transcription_params']
+    concurrent_limit = batch_info.get('concurrent_limit', 3)
+    
+    logger.info(f"🚀 Starting batch transcription task: {batch_id}")
+    logger.info(f"📁 Total files: {len(file_infos)}")
+    logger.info(f"🔄 Concurrent limit: {concurrent_limit}")
+    
+    start_time = datetime.now()
+    
+    try:
+        # 立即初始化批量任务状态 - 确保API可以查询到
+        initial_batch_status = {
+            'overall_status': 'PENDING',
+            'start_time': start_time.isoformat(),
+            'progress_percentage': 0.0,
+            'total_files': len(file_infos),
+            'completed_files': 0,
+            'failed_files': 0
+        }
+        update_batch_status(batch_id, initial_batch_status)
+        
+        # 初始化每个文件的状态
+        for file_info in file_infos:
+            file_id = file_info['file_id']
+            original_filename = file_info['original_filename']
+            update_file_task_status(batch_id, file_id, {
+                'file_id': file_id,
+                'filename': original_filename,
+                'task_id': '',  # 稍后更新
+                'status': 'PENDING',
+                'progress': 0,
+                'estimated_time': 30  # 默认预估时间
+            })
+        
+        logger.info(f"📋 Initialized batch status in Redis for {batch_id}")
+        
+        # 更新批量任务状态为处理中
+        update_batch_status(batch_id, {
+            'overall_status': 'PROCESSING'
+        })
+        
+        # 使用线程池实现真正的并发处理
+        def process_single_file(file_info):
+            """处理单个文件的函数"""
+            file_path = file_info['file_path']
+            file_id = file_info['file_id']
+            original_filename = file_info['original_filename']
+            
+            # 创建单个文件的转录任务
+            task_result = create_transcription_task.delay(
+                file_path, 
+                file_id, 
+                original_filename,
+                transcription_params
+            )
+            
+            # 更新文件任务状态
+            update_file_task_status(batch_id, file_id, {
+                'file_id': file_id,
+                'filename': original_filename,
+                'task_id': task_result.id,
+                'status': 'PENDING'
+            })
+            
+            logger.info(f"📄 Created task {task_result.id} for file: {original_filename}")
+            
+            return {
+                'task_result': task_result,
+                'file_id': file_id,
+                'filename': original_filename
+            }
+        
+        # 使用ThreadPoolExecutor实现并发提交任务
+        subtasks = []
+        task_to_file_map = {}
+        
+        logger.info(f"🚀 Starting {concurrent_limit} concurrent file processing threads...")
+        
+        with ThreadPoolExecutor(max_workers=concurrent_limit) as executor:
+            # 提交所有文件处理任务
+            future_to_file = {
+                executor.submit(process_single_file, file_info): file_info
+                for file_info in file_infos
+            }
+            
+            # 收集结果
+            for future in as_completed(future_to_file):
+                file_info = future_to_file[future]
+                try:
+                    result = future.result()
+                    task_result = result['task_result']
+                    file_id = result['file_id']
+                    filename = result['filename']
+                    
+                    subtasks.append(task_result)
+                    task_to_file_map[task_result.id] = {
+                        'file_id': file_id,
+                        'filename': filename
+                    }
+                    
+                except Exception as e:
+                    logger.error(f"❌ Failed to submit task for {file_info['original_filename']}: {e}")
+                    # 更新文件状态为失败
+                    update_file_task_status(batch_id, file_info['file_id'], {
+                        'status': 'FAILURE',
+                        'error': str(e)
+                    })
+        
+        logger.info(f"✅ All {len(subtasks)} tasks submitted concurrently")
+        
+        # 监控所有子任务的进度
+        completed_tasks = 0
+        failed_tasks = 0
+        
+        while completed_tasks + failed_tasks < len(subtasks):
+            time.sleep(5)  # 每5秒检查一次
+            
+            current_completed = 0
+            current_failed = 0
+            
+            for task_result in subtasks:
+                if task_result.state in ['SUCCESS', 'FAILURE']:
+                    file_info = task_to_file_map[task_result.id]
+                    file_id = file_info['file_id']
+                    filename = file_info['filename']
+                    
+                    if task_result.state == 'SUCCESS':
+                        if not is_file_completed(batch_id, file_id):
+                            current_completed += 1
+                            update_file_task_status(batch_id, file_id, {
+                                'status': 'SUCCESS',
+                                'progress': 100
+                            })
+                            logger.info(f"✅ Completed: {filename}")
+                    
+                    elif task_result.state == 'FAILURE':
+                        if not is_file_failed(batch_id, file_id):
+                            current_failed += 1
+                            error_msg = str(task_result.info) if task_result.info else "Unknown error"
+                            update_file_task_status(batch_id, file_id, {
+                                'status': 'FAILURE',
+                                'error': error_msg
+                            })
+                            logger.error(f"❌ Failed: {filename} - {error_msg}")
+                
+                elif task_result.state == 'PROGRESS':
+                    # 更新进度信息
+                    file_info = task_to_file_map[task_result.id]
+                    file_id = file_info['file_id']
+                    
+                    if task_result.info and isinstance(task_result.info, dict):
+                        progress = task_result.info.get('progress', 0)
+                        update_file_task_status(batch_id, file_id, {
+                            'status': 'PROGRESS',
+                            'progress': progress
+                        })
+            
+            completed_tasks += current_completed
+            failed_tasks += current_failed
+            
+            # 更新总体进度
+            progress_percentage = ((completed_tasks + failed_tasks) / len(subtasks)) * 100
+            update_batch_status(batch_id, {
+                'progress_percentage': progress_percentage,
+                'completed_files': completed_tasks,
+                'failed_files': failed_tasks
+            })
+        
+        # 所有任务完成，生成最终结果
+        end_time = datetime.now()
+        total_time = (end_time - start_time).total_seconds()
+        
+        # 收集成功和失败的结果
+        results = []
+        errors = []
+        
+        for task_result in subtasks:
+            file_info = task_to_file_map[task_result.id]
+            
+            if task_result.state == 'SUCCESS':
+                result_data = task_result.result
+                result_data.update({
+                    'file_id': file_info['file_id'],
+                    'filename': file_info['filename']
+                })
+                results.append(result_data)
+            
+            elif task_result.state == 'FAILURE':
+                error_info = {
+                    'file_id': file_info['file_id'],
+                    'filename': file_info['filename'],
+                    'error': str(task_result.info) if task_result.info else "Unknown error"
+                }
+                errors.append(error_info)
+        
+        # 确定最终状态
+        if failed_tasks == 0:
+            final_status = 'COMPLETED'
+        elif completed_tasks == 0:
+            final_status = 'FAILED'
+        else:
+            final_status = 'PARTIAL_SUCCESS'
+        
+        # 更新最终状态
+        final_batch_status = {
+            'overall_status': final_status,
+            'progress_percentage': 100.0,
+            'completed_files': completed_tasks,
+            'failed_files': failed_tasks,
+            'end_time': end_time.isoformat(),
+            'total_processing_time': total_time
+        }
+        
+        update_batch_status(batch_id, final_batch_status)
+        
+        logger.info(f"🏁 Batch task completed: {batch_id}")
+        logger.info(f"📊 Results: {completed_tasks} success, {failed_tasks} failed")
+        logger.info(f"⏱️ Total time: {total_time:.2f} seconds")
+        
+        return {
+            'batch_id': batch_id,
+            'status': final_status,
+            'total_files': len(file_infos),
+            'successful_files': completed_tasks,
+            'failed_files': failed_tasks,
+            'total_processing_time': total_time,
+            'results': results,
+            'errors': errors
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ Batch task failed: {batch_id} - {e}", exc_info=True)
+        
+        # 更新为失败状态
+        update_batch_status(batch_id, {
+            'overall_status': 'FAILED',
+            'progress_percentage': 0.0,
+            'error': str(e)
+        })
+        
+        self.update_state(
+            state='FAILURE',
+            meta={
+                'batch_id': batch_id,
+                'error': str(e),
+                'exc_type': type(e).__name__
+            }
+        )
+        raise
+
+
+def update_batch_status(batch_id: str, status_update: dict):
+    """更新批量任务状态到Redis"""
+    try:
+        batch_key = f"batch:{batch_id}"
+        
+        # 获取现有状态
+        existing_status = redis_client.hgetall(batch_key)
+        
+        # 更新状态
+        for key, value in status_update.items():
+            redis_client.hset(batch_key, key, str(value))
+        
+        # 设置过期时间（24小时）
+        redis_client.expire(batch_key, 86400)
+        
+    except Exception as e:
+        logger.error(f"Failed to update batch status: {e}")
+
+
+def update_file_task_status(batch_id: str, file_id: str, status_update: dict):
+    """更新单个文件任务状态到Redis"""
+    try:
+        file_key = f"batch:{batch_id}:file:{file_id}"
+        
+        # 更新文件状态
+        for key, value in status_update.items():
+            redis_client.hset(file_key, key, str(value))
+        
+        # 设置过期时间（24小时）
+        redis_client.expire(file_key, 86400)
+        
+    except Exception as e:
+        logger.error(f"Failed to update file task status: {e}")
+
+
+def get_batch_status(batch_id: str) -> dict:
+    """从Redis获取批量任务状态"""
+    try:
+        batch_key = f"batch:{batch_id}"
+        return redis_client.hgetall(batch_key)
+    except Exception as e:
+        logger.error(f"Failed to get batch status: {e}")
+        return {}
+
+
+def get_batch_file_statuses(batch_id: str) -> List[dict]:
+    """获取批量任务中所有文件的状态"""
+    try:
+        pattern = f"batch:{batch_id}:file:*"
+        file_keys = redis_client.keys(pattern)
+        
+        file_statuses = []
+        for key in file_keys:
+            file_status = redis_client.hgetall(key)
+            if file_status:
+                file_statuses.append(file_status)
+        
+        return file_statuses
+    except Exception as e:
+        logger.error(f"Failed to get batch file statuses: {e}")
+        return []
+
+
+def is_file_completed(batch_id: str, file_id: str) -> bool:
+    """检查文件是否已完成"""
+    try:
+        file_key = f"batch:{batch_id}:file:{file_id}"
+        status = redis_client.hget(file_key, 'status')
+        return status == 'SUCCESS'
+    except Exception as e:
+        return False
+
+
+def is_file_failed(batch_id: str, file_id: str) -> bool:
+    """检查文件是否已失败"""
+    try:
+        file_key = f"batch:{batch_id}:file:{file_id}"
+        status = redis_client.hget(file_key, 'status')
+        return status == 'FAILURE'
+    except Exception as e:
+        return False

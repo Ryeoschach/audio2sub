@@ -19,14 +19,14 @@ celery_app.conf.update(
     timezone='UTC',
     enable_utc=True,
     broker_connection_retry_on_startup=True,
-    # Use solo pool to avoid multiprocessing issues with ML models
-    worker_pool='solo',
     # Increase task timeout for large files
     task_soft_time_limit=3600,  # 1 hour
     task_time_limit=3900,  # 1 hour 5 minutes
-    # Prevent memory leaks
+    # Prevent memory leaks with prefork pool
     worker_max_tasks_per_child=10,
     worker_prefetch_multiplier=1,
+    # Use prefork pool for better concurrency support
+    worker_concurrency=2,  # Limit concurrent workers for memory management
 )
 
 # If you have a lot of tasks or complex routing, you might want to use autodiscover_tasks
