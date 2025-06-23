@@ -155,6 +155,8 @@ function App() {
           <APIStatus 
             onModelsLoaded={handleModelsLoaded}
             onHealthStatus={handleHealthStatus}
+            pollInterval={30000}  // 30秒轮询间隔
+            enablePolling={true}  // 启用自动轮询
           />
         </div>
 

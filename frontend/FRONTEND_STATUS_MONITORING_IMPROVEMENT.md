@@ -1,3 +1,15 @@
+# 🔄 前端状态监控改进方案
+
+## 📋 当前实现问题
+
+前端 APIStatus 组件目前只在组件初始化时检查一次状态，缺乏实时监控机制。
+
+## 🔧 改进方案
+
+### 1. 定时轮询实现
+
+```typescript
+// frontend/src/components/APIStatus.tsx
 import React, { useState, useEffect, useRef } from 'react';
 import { audio2subAPI, HealthStatus, ModelsResponse } from '../services/api';
 
@@ -19,12 +31,10 @@ const APIStatus: React.FC<APIStatusProps> = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastChecked, setLastChecked] = useState<Date | null>(null);
-  const [isPollingEnabled, setIsPollingEnabled] = useState(enablePolling);
-  const intervalRef = useRef<number | null>(null);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const checkAPIStatus = async (isManual = false) => {
-    // 避免在已经加载中时重复请求（除非是手动触发）
-    if (!isManual && loading) return;
+    if (!isManual && loading) return; // 避免重复请求
     
     setLoading(true);
     setError(null);
@@ -36,15 +46,6 @@ const APIStatus: React.FC<APIStatusProps> = ({
         audio2subAPI.getModels()
       ]);
 
-      // 检查Redis状态是否发生变化
-      const previousRedisStatus = healthStatus?.redis;
-      const currentRedisStatus = healthResult.redis;
-      
-      if (previousRedisStatus && previousRedisStatus !== currentRedisStatus) {
-        console.log(`🔄 Redis 状态变化: ${previousRedisStatus} -> ${currentRedisStatus}`);
-        // 可以在这里添加通知逻辑
-      }
-
       setHealthStatus(healthResult);
       setModelsData(modelsResult);
       setLastChecked(new Date());
@@ -52,6 +53,11 @@ const APIStatus: React.FC<APIStatusProps> = ({
       const isHealthy = healthResult.status === 'healthy';
       onHealthStatus(isHealthy);
       onModelsLoaded(modelsResult);
+
+      // 如果 Redis 状态发生变化，显示通知
+      if (healthStatus && healthStatus.redis !== healthResult.redis) {
+        console.log(`Redis 状态变化: ${healthStatus.redis} -> ${healthResult.redis}`);
+      }
 
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'API 连接失败';
@@ -63,38 +69,24 @@ const APIStatus: React.FC<APIStatusProps> = ({
     }
   };
 
-  // 启动轮询
+  // 启动定时检查
   const startPolling = () => {
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
     }
     
-    if (isPollingEnabled && pollInterval > 0) {
+    if (enablePolling && pollInterval > 0) {
       intervalRef.current = setInterval(() => {
         checkAPIStatus(false);
       }, pollInterval);
-      console.log(`🔄 启动状态轮询，间隔: ${pollInterval/1000}秒`);
     }
   };
 
-  // 停止轮询
+  // 停止定时检查
   const stopPolling = () => {
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
-      console.log('⏸️ 停止状态轮询');
-    }
-  };
-
-  // 切换轮询状态
-  const togglePolling = () => {
-    const newPollingState = !isPollingEnabled;
-    setIsPollingEnabled(newPollingState);
-    
-    if (newPollingState) {
-      startPolling();
-    } else {
-      stopPolling();
     }
   };
 
@@ -102,16 +94,19 @@ const APIStatus: React.FC<APIStatusProps> = ({
     // 初始检查
     checkAPIStatus(true);
     
-    // 启动轮询
-    if (isPollingEnabled) {
-      startPolling();
-    }
+    // 启动定时检查
+    startPolling();
 
     // 清理函数
     return () => {
       stopPolling();
     };
-  }, [isPollingEnabled, pollInterval]);
+  }, [enablePolling, pollInterval]);
+
+  // 手动刷新
+  const handleManualRefresh = () => {
+    checkAPIStatus(true);
+  };
 
   const getStatusColor = () => {
     if (loading) return 'from-yellow-400 to-orange-400';
@@ -139,10 +134,6 @@ const APIStatus: React.FC<APIStatusProps> = ({
     return lastChecked.toLocaleTimeString();
   };
 
-  const handleManualRefresh = () => {
-    checkAPIStatus(true);
-  };
-
   return (
     <div className="glass-effect p-6 rounded-xl shadow-xl border border-white/20 mb-6">
       <div className="flex items-center justify-between">
@@ -167,19 +158,18 @@ const APIStatus: React.FC<APIStatusProps> = ({
         <div className="flex items-center gap-2">
           {/* 轮询状态指示器 */}
           <div className="flex items-center gap-1">
-            <span className={`w-2 h-2 rounded-full ${isPollingEnabled ? 'bg-green-400 animate-pulse' : 'bg-gray-400'}`}></span>
+            <span className={`w-2 h-2 rounded-full ${enablePolling ? 'bg-green-400 animate-pulse' : 'bg-gray-400'}`}></span>
             <span className="text-xs text-gray-400">
-              {isPollingEnabled ? `自动检查 (${pollInterval/1000}s)` : '手动模式'}
+              {enablePolling ? `自动检查 (${pollInterval/1000}s)` : '手动模式'}
             </span>
           </div>
           
           {/* 切换轮询按钮 */}
           <button
-            onClick={togglePolling}
+            onClick={() => enablePolling ? stopPolling() : startPolling()}
             className="px-2 py-1 text-xs bg-gray-500/20 hover:bg-gray-500/30 text-gray-300 border border-gray-400/30 rounded transition-all duration-300"
-            title={isPollingEnabled ? '点击停止自动检查' : '点击启动自动检查'}
           >
-            {isPollingEnabled ? '⏸️' : '▶️'}
+            {enablePolling ? '⏸️' : '▶️'}
           </button>
           
           {/* 手动刷新按钮 */}
@@ -242,30 +232,16 @@ const APIStatus: React.FC<APIStatusProps> = ({
             <div className="flex items-center gap-2 mb-1">
               <span className="text-lg">🔄</span>
               <span className="text-green-300 font-medium">Redis</span>
-              {isPollingEnabled && (
-                <span className="text-xs text-gray-400" title="正在实时监控Redis状态">
-                  (实时监控)
-                </span>
-              )}
             </div>
             <div className="flex items-center gap-2">
-              <span className={`text-lg font-bold ${healthStatus.redis === 'connected' ? 'text-green-300' : 'text-red-300'}`}>
-                {healthStatus.redis === 'connected' ? '✅ 已连接' : '❌ 未连接'}
+              <span className={`text-lg font-bold ${healthStatus.redis?.includes('connected') ? 'text-green-300' : 'text-red-300'}`}>
+                {healthStatus.redis?.includes('connected') ? '✅ 已连接' : '❌ 未连接'}
               </span>
               {/* Redis 连接状态变化动画 */}
-              {healthStatus.redis === 'connected' && isPollingEnabled && (
-                <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" title="连接正常"></span>
-              )}
-              {healthStatus.redis !== 'connected' && (
-                <span className="w-2 h-2 bg-red-400 rounded-full" title="连接异常"></span>
+              {healthStatus.redis?.includes('connected') && (
+                <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
               )}
             </div>
-            {/* 显示详细的Redis状态信息 */}
-            {healthStatus.redis && healthStatus.redis !== 'connected' && (
-              <div className="mt-2 text-xs text-red-200 bg-red-500/10 p-2 rounded border border-red-400/20">
-                状态: {healthStatus.redis}
-              </div>
-            )}
           </div>
         </div>
       )}
@@ -274,3 +250,146 @@ const APIStatus: React.FC<APIStatusProps> = ({
 };
 
 export default APIStatus;
+```
+
+### 2. 使用改进后的组件
+
+```typescript
+// 在父组件中使用
+<APIStatus 
+  onModelsLoaded={handleModelsLoaded}
+  onHealthStatus={handleHealthStatus}
+  pollInterval={30000}  // 30秒轮询一次
+  enablePolling={true}  // 启用自动轮询
+/>
+```
+
+### 3. WebSocket 实时监控实现（高级方案）
+
+```typescript
+// frontend/src/hooks/useRealtimeStatus.ts
+import { useState, useEffect, useRef } from 'react';
+import { HealthStatus } from '../services/api';
+
+interface UseRealtimeStatusOptions {
+  wsUrl?: string;
+  reconnectInterval?: number;
+  maxReconnectAttempts?: number;
+}
+
+export const useRealtimeStatus = (options: UseRealtimeStatusOptions = {}) => {
+  const {
+    wsUrl = 'ws://localhost:8000/ws/status',
+    reconnectInterval = 5000,
+    maxReconnectAttempts = 5
+  } = options;
+
+  const [healthStatus, setHealthStatus] = useState<HealthStatus | null>(null);
+  const [isConnected, setIsConnected] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  
+  const wsRef = useRef<WebSocket | null>(null);
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const reconnectAttemptsRef = useRef(0);
+
+  const connect = () => {
+    try {
+      const ws = new WebSocket(wsUrl);
+      wsRef.current = ws;
+
+      ws.onopen = () => {
+        console.log('WebSocket connected');
+        setIsConnected(true);
+        setError(null);
+        reconnectAttemptsRef.current = 0;
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          setHealthStatus(data);
+        } catch (err) {
+          console.error('Failed to parse WebSocket message:', err);
+        }
+      };
+
+      ws.onclose = () => {
+        console.log('WebSocket disconnected');
+        setIsConnected(false);
+        
+        // 自动重连
+        if (reconnectAttemptsRef.current < maxReconnectAttempts) {
+          reconnectAttemptsRef.current++;
+          console.log(`Attempting to reconnect (${reconnectAttemptsRef.current}/${maxReconnectAttempts})...`);
+          
+          reconnectTimeoutRef.current = setTimeout(() => {
+            connect();
+          }, reconnectInterval);
+        } else {
+          setError('WebSocket连接失败，已达到最大重试次数');
+        }
+      };
+
+      ws.onerror = (error) => {
+        console.error('WebSocket error:', error);
+        setError('WebSocket连接错误');
+      };
+
+    } catch (err) {
+      console.error('Failed to create WebSocket connection:', err);
+      setError('无法建立WebSocket连接');
+    }
+  };
+
+  const disconnect = () => {
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+    }
+    
+    if (wsRef.current) {
+      wsRef.current.close();
+      wsRef.current = null;
+    }
+    
+    setIsConnected(false);
+  };
+
+  useEffect(() => {
+    connect();
+
+    return () => {
+      disconnect();
+    };
+  }, [wsUrl]);
+
+  return {
+    healthStatus,
+    isConnected,
+    error,
+    reconnect: connect,
+    disconnect
+  };
+};
+```
+
+## 🎯 实施建议
+
+1. **开发阶段**：使用定时轮询方案（30秒间隔）
+2. **生产环境**：考虑实现 WebSocket 实时推送
+3. **用户体验**：
+   - 显示最后检查时间
+   - 提供手动刷新按钮
+   - 显示轮询状态指示器
+   - 支持暂停/恢复自动检查
+
+4. **性能优化**：
+   - 避免重复请求
+   - 合理设置轮询间隔
+   - 页面不可见时暂停轮询
+
+5. **错误处理**：
+   - 网络错误重试机制
+   - 显示详细错误信息
+   - 提供故障排查建议
+
+这样可以确保前端能够及时感知到 Redis 状态的变化，解决状态不一致的问题。

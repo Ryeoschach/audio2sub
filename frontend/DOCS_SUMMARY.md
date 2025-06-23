@@ -20,7 +20,8 @@ frontend/
 ├── ⚙️ vite.config.ts         # 构建配置
 ├── ⚙️ tailwind.config.js     # 样式配置
 ├── ⚙️ tsconfig.json          # TypeScript 配置
-└── 🐳 Dockerfile             # Docker 配置
+├── 🐳 Dockerfile             # Docker 配置
+└── 📊 FRONTEND_STATUS_MONITORING_IMPROVEMENT.md  # 状态监控改进方案
 ```
 
 ---
@@ -276,6 +277,20 @@ pnpm dev
 - 根据新功能更新文档内容
 - 收集用户反馈优化文档结构
 - 保持文档与代码同步
+
+---
+
+## 🔍 技术分析文档
+
+### Redis 状态监控分析
+- ✅ **REDIS_STATUS_ANALYSIS.md** - Redis 状态不一致问题技术分析
+- ✅ **FRONTEND_STATUS_MONITORING_IMPROVEMENT.md** - 前端状态监控改进方案
+
+### 分析成果
+- 🎯 **问题根因**：前端按需查询 vs Celery 实时连接机制差异
+- 🔧 **解决方案**：定时轮询、WebSocket 实时监控、用户体验优化
+- 📊 **技术对比**：不同监控方式的优缺点分析
+- 🎯 **最佳实践**：开发和生产环境的监控策略建议
 
 ---
 
