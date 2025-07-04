@@ -34,13 +34,6 @@
 - **Docker & Docker Compose**: 容器化部署
 - **uv**: 快速的 Python 包管理器
 
-## 📊 性能指标
-
-- **处理速度**: 1:2 到 1:3 的处理比例（1分钟音频需要2-3分钟）
-- **字幕精度**: 基于 `whisper-large-v3-turbo` 模型，高准确度
-- **分段质量**: 智能分段，单个条目6秒以内，便于阅读
-- **硬件优化**: 支持 Apple Silicon MPS 加速
-
 ## 🚀 快速开始
 
 ### 方式一：Docker 部署（推荐）
@@ -66,9 +59,7 @@ docker-compose up --build
 1. **后端环境**
 ```bash
 cd backend
-python -m venv .venv
-source .venv/bin/activate  # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
+uv sync --locked
 ```
 
 2. **启动 Redis**
@@ -143,20 +134,6 @@ MODEL_DEVICE = "mps"  # 设备选择: mps/cuda/cpu
 TORCH_DTYPE = "float16"  # 数据类型优化
 ```
 
-### 性能配置
-```python
-BATCH_SIZE = 4  # 批处理大小
-CHUNK_LENGTH_S = 30  # 音频块长度（秒）
-STRIDE_LENGTH_S = 5  # 块重叠长度（秒）
-```
-
-### 字幕分段配置
-```python
-MAX_SUBTITLE_DURATION = 6  # 最大字幕时长（秒）
-MAX_WORDS_PER_SUBTITLE = 10  # 最大词数
-MAX_CHARS_PER_SUBTITLE = 60  # 最大字符数
-```
-
 ## 🎛️ 使用指南
 
 ### 前端界面操作
@@ -196,14 +173,14 @@ audio2sub/
 │   ├── celery_app.py      # Celery 应用配置
 │   └── requirements.txt   # Python 依赖
 ├── frontend/               # React 前端
-│   ├── src/               # 源代码
-│   │   ├── components/    # React 组件
-│   │   │   └── ThemeToggle.tsx  # 主题切换组件
-│   │   ├── contexts/      # React 上下文
-│   │   │   └── ThemeContext.tsx # 主题上下文管理
-│   │   └── App.tsx        # 应用入口
-│   └── package.json       # Node.js 依赖
-└── docker-compose.yml     # Docker 编排文件
+    ├── src/               # 源代码
+    │   ├── components/    # React 组件
+    │   │   └── ThemeToggle.tsx  # 主题切换组件
+    │   ├── contexts/      # React 上下文
+    │   │   └── ThemeContext.tsx # 主题上下文管理
+    │   └── App.tsx        # 应用入口
+    └── package.json       # Node.js 依赖
+
 ```
 
 ### 环境要求
@@ -243,7 +220,7 @@ audio2sub/
 1. **Redis 连接失败**: 检查 Redis 服务是否启动
 2. **FFmpeg 未找到**: 确保系统已安装 FFmpeg
 3. **内存不足**: 降低 `BATCH_SIZE` 参数
-4. **转录速度慢**: 检查是否启用硬件加速 (MPS/CUDA)
+4. **转录速度慢**: 检查是否启用硬件加速 (MPS/CUDA/CPU)
 
 ### 日志查看
 ```bash
@@ -274,7 +251,6 @@ uvicorn app.main:app --log-level debug
 
 ### v2.0.0 (2025-06-16)
 - 🚀 **重大性能优化**: 切换到 transformers pipeline
-- 📝 **智能字幕分段**: 6秒以内的合理时间段
 - ⏱️ **时间跟踪功能**: 详细的性能监控
 - 🔇 **警告优化**: 清洁的控制台输出
 - ⚡ **速度提升**: 批处理和硬件加速优化
@@ -282,7 +258,6 @@ uvicorn app.main:app --log-level debug
 ### v1.0.0
 - 🎉 **基础功能**: 音频/视频转字幕
 - 🌐 **Web 界面**: React + FastAPI 架构
-- 🐳 **容器化**: Docker 部署支持
 
 ## 📄 许可证
 
