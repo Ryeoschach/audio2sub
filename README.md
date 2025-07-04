@@ -36,25 +36,7 @@
 
 ## 🚀 快速开始
 
-### 方式一：Docker 部署（推荐）
-
-1. **克隆项目**
-```bash
-git clone <repository-url>
-cd audio2sub
-```
-
-2. **启动服务**
-```bash
-docker-compose up --build
-```
-
-3. **访问应用**
-- 前端：http://localhost:5173
-- 后端 API：http://localhost:8000
-- API 文档：http://localhost:8000/docs
-
-### 方式二：本地开发
+### 方式一：本地开发
 
 1. **后端环境**
 ```bash
@@ -69,12 +51,12 @@ redis-server
 
 3. **启动 Celery Worker**
 ```bash
-celery -A celery_app.celery_app worker --loglevel=info --pool=solo
+uv run celery -A celery_app.celery_app worker --loglevel=info --pool=solo
 ```
 
 4. **启动后端服务**
 ```bash
-uvicorn app.main:app --reload --port 8000
+uv run uvicorn app.main:app --reload --port 8000
 ```
 
 5. **启动前端**
