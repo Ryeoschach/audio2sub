@@ -31,44 +31,17 @@
 - **主题系统**: 基于 Context API 的浅色/深色主题切换
 
 ### 部署
-- **Docker & Docker Compose**: 容器化部署
 - **uv**: 快速的 Python 包管理器
 
-## 📊 性能指标
-
-- **处理速度**: 1:2 到 1:3 的处理比例（1分钟音频需要2-3分钟）
-- **字幕精度**: 基于 `whisper-large-v3-turbo` 模型，高准确度
-- **分段质量**: 智能分段，单个条目6秒以内，便于阅读
-- **硬件优化**: 支持 Apple Silicon MPS 加速
 
 ## 🚀 快速开始
-
-### 方式一：Docker 部署（推荐）
-
-1. **克隆项目**
-```bash
-git clone <repository-url>
-cd audio2sub
-```
-
-2. **启动服务**
-```bash
-docker-compose up --build
-```
-
-3. **访问应用**
-- 前端：http://localhost:5173
-- 后端 API：http://localhost:8000
-- API 文档：http://localhost:8000/docs
 
 ### 方式二：本地开发
 
 1. **后端环境**
 ```bash
 cd backend
-python -m venv .venv
-source .venv/bin/activate  # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
+uv sync  
 ```
 
 2. **启动 Redis**
@@ -78,12 +51,14 @@ redis-server
 
 3. **启动 Celery Worker**
 ```bash
-celery -A celery_app.celery_app worker --loglevel=info --pool=solo
+uv run celery -A celery_app.celery_app worker --loglevel=info --pool=solo
+```bash
+uv run celery -A celery_app.celery_app worker --loglevel=info --pool=solo -- concurrency 4
 ```
 
 4. **启动后端服务**
 ```bash
-uvicorn app.main:app --reload --port 8000
+uv run uvicorn app.main:app --reload --port 8000
 ```
 
 5. **启动前端**
@@ -134,28 +109,6 @@ GET /results/{file_id}/{filename}
 }
 ```
 
-## ⚙️ 配置参数
-
-### 模型配置
-```python
-MODEL_NAME = "openai/whisper-large-v3-turbo"  # 转录模型
-MODEL_DEVICE = "mps"  # 设备选择: mps/cuda/cpu
-TORCH_DTYPE = "float16"  # 数据类型优化
-```
-
-### 性能配置
-```python
-BATCH_SIZE = 4  # 批处理大小
-CHUNK_LENGTH_S = 30  # 音频块长度（秒）
-STRIDE_LENGTH_S = 5  # 块重叠长度（秒）
-```
-
-### 字幕分段配置
-```python
-MAX_SUBTITLE_DURATION = 6  # 最大字幕时长（秒）
-MAX_WORDS_PER_SUBTITLE = 10  # 最大词数
-MAX_CHARS_PER_SUBTITLE = 60  # 最大字符数
-```
 
 ## 🎛️ 使用指南
 
@@ -248,49 +201,15 @@ audio2sub/
 ### 日志查看
 ```bash
 # Celery Worker 日志
-celery -A celery_app.celery_app worker --loglevel=debug
+uv run celery -A celery_app.celery_app worker --loglevel=debug
 
 # FastAPI 日志
-uvicorn app.main:app --log-level debug
+uv run uvicorn app.main:app --log-level debug
 ```
-
-## 🔮 roadmap
-
-- [ ] **WebSocket 支持**: 实时进度推送
-- [ ] **多语言检测**: 自动识别音频语言
-- [ ] **说话人分离**: 区分不同说话人
-- [ ] **批量处理**: 支持多文件同时上传
-- [ ] **字幕编辑**: 在线字幕编辑功能
-- [ ] **API 认证**: 添加用户认证和限流
-
-## 📝 更新日志
-
-### v2.1.0 (2025-01-XX)
-- 🌓 **主题切换功能**: 新增浅色/深色主题支持
-- 🎨 **界面优化**: 重构样式系统，支持主题感知的UI组件
-- 💾 **偏好存储**: 主题偏好自动保存到本地存储
-- ⚡ **平滑过渡**: 主题切换时的动画效果优化
-- 🔧 **技术升级**: 采用 Context API 和 CSS 变量系统
-
-### v2.0.0 (2025-06-16)
-- 🚀 **重大性能优化**: 切换到 transformers pipeline
-- 📝 **智能字幕分段**: 6秒以内的合理时间段
-- ⏱️ **时间跟踪功能**: 详细的性能监控
-- 🔇 **警告优化**: 清洁的控制台输出
-- ⚡ **速度提升**: 批处理和硬件加速优化
-
-### v1.0.0
-- 🎉 **基础功能**: 音频/视频转字幕
-- 🌐 **Web 界面**: React + FastAPI 架构
-- 🐳 **容器化**: Docker 部署支持
 
 ## 📄 许可证
 
 本项目采用 MIT 许可证 - 查看 [LICENSE](LICENSE) 文件了解详情。
-
-## 🤝 贡献
-
-欢迎提交 Issue 和 Pull Request！
 
 ---
 
